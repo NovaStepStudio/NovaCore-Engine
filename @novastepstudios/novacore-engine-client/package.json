@@ -1,0 +1,52 @@
+{
+    "name": "@novastepstudios/novacore-engine-client",
+    "version": "1.0.0",
+    "description": "Cliente oficial para NovaCore-Engine — motor de backend para launchers de Minecraft Java",
+    "main": "src/index.js",
+    "types": "types/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./types/index.d.ts",
+            "require": "./src/index.js",
+            "import": "./src/index.js"
+        }
+    },
+    "files": [
+        "src/",
+        "types/",
+        "examples/",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "example:sysinfo":   "node examples/sysinfo.js",
+        "example:instances": "node examples/instances.js",
+        "example:install":   "node examples/install.js",
+        "example:launch":    "node examples/launch.js",
+        "example:advanced":  "node examples/advanced.js",
+        "example:full":      "node examples/full.js"
+    },
+    "keywords": [
+        "minecraft",
+        "launcher",
+        "minecraft-launcher",
+        "novastepstudios",
+        "novacore",
+        "novacore-engine",
+        "minecraft-java",
+        "electron"
+    ],
+    "author": "NovaStepStudios",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/NovaStepStudios/NovaCore-Engine"
+    },
+    "homepage": "https://github.com/NovaStepStudios/NovaCore-Engine#readme",
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "dependencies": {
+        "ws": "^8.18.0"
+    }
+}

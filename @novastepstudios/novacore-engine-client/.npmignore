@@ -1,0 +1,10 @@
+# Desarrollo
+node_modules/
+.git/
+.gitignore
+
+# Tests
+*.test.js
+*.spec.js
+__tests__/
+coverage/

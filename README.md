@@ -11,11 +11,11 @@
 
 ---
 
-NovaCore-Engine es el motor interno que potencia [StepLauncher](https://github.com/NovaStepStudios). Es un proceso Java independiente que expone toda la lógica de Minecraft —instalación, descarga, lanzamiento, gestión de instancias— a través de una API HTTP local y un WebSocket de eventos en tiempo real.
+NovaCore-Engine es el motor interno que potencia [StepLauncher](https://github.com/NovaStepStudios/StepLauncher). Es un proceso Java independiente que expone toda la lógica de Minecraft —instalación, descarga, lanzamiento, gestión de instancias— a través de una API HTTP local y un WebSocket de eventos en tiempo real.
 
 La idea es simple: tu launcher o aplicación habla con el engine a través de HTTP y WebSocket. El engine se encarga de todo lo pesado. Vos solo consumís los eventos y mostrás lo que está pasando en pantalla.
 
-El cliente Node.js incluido (`@novastepstudios/novacore-engine-client`) te conecta al engine en segundos, con soporte completo para TypeScript a través de los tipos incluidos.
+El cliente Node.js incluido [@novastepstudios/novacore-engine-client](./@novastepstudios/novacore-engine-client) te conecta al engine en segundos, con soporte completo para TypeScript a través de los tipos incluidos.
 
 ---
 
