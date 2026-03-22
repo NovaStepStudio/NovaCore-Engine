@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group   = 'dev.novastep'
+version = '1.0.0'
+sourceCompatibility = JavaVersion.VERSION_21
+targetCompatibility = JavaVersion.VERSION_21
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // JSON
+    implementation 'com.google.code.gson:gson:2.10.1'
+    // WebSocket server
+    implementation 'org.java-websocket:Java-WebSocket:1.5.4'
+    // Logging
+    implementation 'org.slf4j:slf4j-api:2.0.9'
+    implementation 'org.slf4j:slf4j-simple:2.0.9'
+}
+
+application {
+    mainClass = 'dev.novastep.core.Main'
+}
+
+jar {
+    archiveFileName = 'novacore-engine.jar'
+    manifest {
+        attributes(
+            'Main-Class'       : 'dev.novastep.core.Main',
+            'Implementation-Title'  : 'novacore-engine',
+            'Implementation-Vendor' : 'NovaStepStudios',
+            'Implementation-Version': project.version
+        )
+    }
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

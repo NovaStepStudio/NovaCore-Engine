@@ -1,0 +1,13 @@
+node_modules
+.gradle
+
+out
+dist
+*.tgz
+*.jar
+
+# logs
+logs
+_.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+*.log
