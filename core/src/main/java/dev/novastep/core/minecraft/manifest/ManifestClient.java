@@ -11,69 +11,133 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 
 public class ManifestClient {
 
-    private static final String ROOT_MANIFEST_URL = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json";
-    private static final Gson GSON = new Gson();
-    private static final int TIMEOUT_SEC = 30;
-    private static final String LOG = "ManifestClient";
+    private static final String LOG          = "ManifestClient";
+    private static final String MANIFEST_URL = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json";
 
-    private final HttpClient http;
-
-    public ManifestClient() {
-        this.http = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(TIMEOUT_SEC))
+    private static final Gson       GSON = new Gson();
+    private static final HttpClient HTTP = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(15))
             .followRedirects(HttpClient.Redirect.ALWAYS)
             .build();
-    }
 
-    public VersionManifest fetchRootManifest() throws IOException, InterruptedException {
-        CoreLogger.get().info(LOG, "Fetching root manifest...");
-        return fetchJson(ROOT_MANIFEST_URL, VersionManifest.class);
-    }
-
-    public VersionInfo fetchVersionInfo(String versionUrl) throws IOException, InterruptedException {
-        CoreLogger.get().debug(LOG, "Fetching version info: " + versionUrl);
-        return fetchJson(versionUrl, VersionInfo.class);
+    public VersionManifest fetchManifest() throws IOException, InterruptedException {
+        String json = get(MANIFEST_URL);
+        return GSON.fromJson(json, VersionManifest.class);
     }
 
     public VersionInfo fetchVersionById(String versionId) throws IOException, InterruptedException {
-        VersionManifest root = fetchRootManifest();
-        VersionManifest.VersionEntry entry = root.findById(versionId);
-        if (entry == null) {
-            throw new IllegalArgumentException("Version '" + versionId + "' not found. Latest: " + root.latest.release);
-        }
-        CoreLogger.get().info(LOG, "Resolved '" + versionId + "' → " + entry.url);
-        return fetchVersionInfo(entry.url);
+        VersionManifest manifest = fetchManifest();
+        String url = manifest.versions.stream()
+                .filter(v -> v.id.equals(versionId))
+                .findFirst()
+                .map(v -> v.url)
+                .orElseThrow(() -> new IOException("Versión no encontrada en manifest Mojang: " + versionId));
+        return fetchVersionFromUrl(url);
     }
 
-    public AssetIndexManifest fetchAssetIndex(VersionInfo.AssetIndex assetIndexInfo)
+    public VersionInfo fetchVersionWithInheritance(String versionId)
             throws IOException, InterruptedException {
-        CoreLogger.get().info(LOG, "Fetching asset index '" + assetIndexInfo.id +
-            "' (" + assetIndexInfo.size / 1024 + " KB)...");
-        return fetchJson(assetIndexInfo.url, AssetIndexManifest.class);
+        return fetchVersionWithInheritance(versionId, null);
     }
 
-    private <T> T fetchJson(String url, Class<T> clazz) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .timeout(Duration.ofSeconds(TIMEOUT_SEC))
-            .header("User-Agent", "novacore-engine/1.0 (NovaStepStudios)")
-            .header("Accept", "application/json")
-            .GET().build();
+    public VersionInfo fetchVersionWithInheritance(String versionId, Path localBasePath)
+            throws IOException, InterruptedException {
 
-        HttpResponse<String> response;
-        try {
-            response = http.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            throw new IOException("Network error fetching: " + url + " → " + e.getMessage(), e);
+        VersionInfo version = fetchVersionByIdFlexible(versionId, localBasePath);
+        return resolveInheritance(version, localBasePath);
+    }
+
+    public VersionInfo resolveInheritance(VersionInfo version)
+            throws IOException, InterruptedException {
+        return resolveInheritance(version, null);
+    }
+
+    public VersionInfo resolveInheritance(VersionInfo version, Path localBasePath)
+            throws IOException, InterruptedException {
+        if (version.inheritsFrom == null || version.inheritsFrom.isBlank()) {
+            return version;
         }
 
-        if (response.statusCode() != 200)
-            throw new IOException("HTTP " + response.statusCode() + " fetching: " + url);
+        CoreLogger.get().info(LOG, "Resolviendo herencia: " + version.id + " → " + version.inheritsFrom);
 
-        return GSON.fromJson(response.body(), clazz);
+        VersionInfo parent = fetchVersionByIdFlexible(version.inheritsFrom, localBasePath);
+        parent = resolveInheritance(parent, localBasePath);
+        return VersionMerger.merge(parent, version);
+    }
+
+    public AssetIndexManifest fetchAssetIndex(VersionInfo.AssetIndex assetIndex)
+            throws IOException, InterruptedException {
+        String json = get(assetIndex.url);
+        return GSON.fromJson(json, AssetIndexManifest.class);
+    }
+
+    private VersionInfo fetchVersionByIdFlexible(String versionId, Path localBasePath)
+            throws IOException, InterruptedException {
+        try {
+            VersionManifest manifest = fetchManifest();
+            String url = manifest.versions.stream()
+                    .filter(v -> v.id.equals(versionId))
+                    .findFirst()
+                    .map(v -> v.url)
+                    .orElse(null);
+
+            if (url != null) {
+                VersionInfo info = fetchVersionFromUrl(url);
+                CoreLogger.get().debug(LOG, "Versión cargada desde Mojang: " + versionId);
+                return info;
+            }
+        } catch (IOException networkEx) {
+            CoreLogger.get().warn(LOG, "Sin red para buscar " + versionId + " en Mojang: " + networkEx.getMessage());
+        }
+
+        if (localBasePath != null) {
+            Path localJson = localBasePath
+                    .resolve("versions")
+                    .resolve(versionId)
+                    .resolve(versionId + ".json");
+
+            if (Files.exists(localJson)) {
+                try {
+                    String json = Files.readString(localJson, StandardCharsets.UTF_8);
+                    VersionInfo info = GSON.fromJson(json, VersionInfo.class);
+                    CoreLogger.get().info(LOG, "Versión cargada desde JSON local: " + localJson);
+                    return info;
+                } catch (Exception ex) {
+                    throw new IOException("JSON local corrupto para '" + versionId
+                            + "': " + localJson + " — " + ex.getMessage());
+                }
+            }
+        }
+
+        throw new IOException(
+                "Versión '" + versionId + "' no encontrada en Mojang ni en disco local. "
+                + (localBasePath != null
+                        ? "Buscado en: " + localBasePath.resolve("versions").resolve(versionId)
+                        : "localBasePath no configurado."));
+    }
+
+    private VersionInfo fetchVersionFromUrl(String url) throws IOException, InterruptedException {
+        String json = get(url);
+        return GSON.fromJson(json, VersionInfo.class);
+    }
+
+    private String get(String url) throws IOException, InterruptedException {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .timeout(Duration.ofSeconds(30))
+                .build();
+        HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (res.statusCode() != 200) {
+            throw new IOException("HTTP " + res.statusCode() + " fetching: " + url);
+        }
+        return res.body();
     }
 }

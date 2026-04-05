@@ -1,402 +1,212 @@
 # Referencia de Tipos TypeScript
 
-El archivo `client/minecraft-core.d.ts` define todos los tipos del cliente. Acá está la referencia completa con descripciones de cada campo.
+Todos los tipos del cliente están definidos en `client/minecraft-core.d.ts`. Esta página es una referencia anotada de los más relevantes.
 
 ---
 
-## Opciones de instalación
+## InstallOptions
 
 ```ts
 interface InstallOptions {
-  version:      string;       // ID de la versión (ej: "1.21.1", "1.20.4")
-  instancePath: string;       // Ruta absoluta al directorio de la instancia
-  sharedPath?:  string;       // Ruta para compartir assets/libs entre instancias
+  version:           string;   // ID de versión ("1.21.6", "1.20.4", etc.)
+  instancePath:      string;   // Ruta absoluta al directorio de la instancia
+  sharedPath?:       string;   // Para compartir assets/libs entre instancias
   download?: {
-    client?:    boolean;      // Descargar el client.jar (default: true)
-    libraries?: boolean;      // Descargar librerías (default: true)
-    assets?:    boolean;      // Descargar assets (default: true)
-    natives?:   boolean;      // Descargar nativos de la plataforma (default: true)
-    jvm?:       boolean;      // Descargar JVM de Mojang (default: false)
+    client?:         boolean;  // Default true
+    libraries?:      boolean;  // Default true
+    assets?:         boolean;  // Default true
+    natives?:        boolean;  // Default true
+    jvm?:            boolean;  // Default false — descarga el JDK de Mojang
   };
-  verifySHA1?:  boolean;      // Verificar integridad de archivos existentes (default: true)
-  maxThreads?:  number;       // Threads de descarga. 0 = auto (default: 0)
-  debug?:       boolean;      // Emitir eventos debug adicionales (default: false)
+  verifySHA1?:       boolean;  // Verifica SHA1 antes de saltear archivos, default true
+  maxThreads?:       number;   // Hilos de descarga paralela, default 4
+  modloader?:        string;   // forge | neoforge | fabric | quilt | legacyfabric | optifine
+  modloaderVersion?: string;   // Si no se pone, resuelve latest para la MC version dada
 }
 ```
 
 ---
 
-## Opciones de lanzamiento
+## LaunchOptions
 
 ```ts
 interface LaunchOptions {
-  version:      string;       // Versión a lanzar
-  instancePath: string;       // Ruta al directorio de la instancia
-  sharedPath?:  string;       // Shared path (si instalaste con uno)
-  javaPath?:    string;       // Ruta al ejecutable Java. null = usa el bundled o el del sistema
-
-  auth?:            AuthConfig;
-  authlibInjector?: AuthlibInjectorConfig;
-  jvm?:             JvmConfig;
-  window?:          WindowConfig;
-  launcher?:        LauncherBranding;
-  features?:        LaunchFeatures;
-  game?:            GameCustomization;
-
-  hardwareAcceleration?: boolean;   // Activar aceleración de hardware (default: false)
-  gpuPreference?:        'auto' | 'dgpu' | 'igpu';  // Preferencia de GPU (default: 'auto')
+  version:               string;  // ID de versión, incluyendo el prefijo del modloader si aplica
+  instancePath:          string;
+  sharedPath?:           string;
+  javaPath?:             string;  // Path absoluto al ejecutable java. Si no se pone, el engine lo resuelve
+  hardwareAcceleration?: boolean;
   gcPreset?:             'auto' | 'g1gc_basic' | 'g1gc_optimized' | 'zgc' | 'shenandoah';
+  gpuPreference?:        'auto' | 'dgpu' | 'igpu';
+  auth?:                 AuthConfig;
+  authlibInjector?:      AuthlibInjectorConfig;
+  jvm?:                  JvmConfig;
+  window?:               WindowConfig;
+  launcher?:             LauncherBranding;
+  features?:             LaunchFeatures;
+  game?:                 GameCustomization;
 }
 ```
 
 ---
 
-## Autenticación
+## AuthConfig
 
 ```ts
 interface AuthConfig {
-  username?:    string;                          // Nombre de usuario en el juego
-  uuid?:        string;                          // UUID del perfil de Mojang
-  accessToken?: string;                          // Token de acceso Microsoft
-  userType?:    'msa' | 'legacy' | 'offline';   // Tipo de autenticación
-  clientId?:    string;                          // Client ID del token MSA
-  xuid?:        string;                          // XUID de Xbox Live
-}
-
-interface AuthlibInjectorConfig {
-  enabled:   boolean;   // Si usar authlib-injector
-  jarPath:   string;    // Ruta al JAR de authlib-injector
-  serverUrl: string;    // URL del servidor de autenticación
+  username?:    string;                        // Nombre de usuario
+  uuid?:        string;                        // UUID en formato estándar con guiones
+  accessToken?: string;                        // Token MSA o "0" para offline
+  userType?:    'msa' | 'legacy' | 'offline';  // Default "msa"
+  clientId?:    string;                        // Client ID de la app MSA
+  xuid?:        string;                        // XUID de Xbox Live
 }
 ```
 
 ---
 
-## Configuración de JVM
+## JvmConfig
 
 ```ts
 interface JvmConfig {
-  minMemoryMb?:  number;     // -Xms en MB. 0 = sin mínimo explícito
-  maxMemoryMb?:  number;     // -Xmx en MB. 0 = auto según systemResources
-  extraArgs?:    string[];   // Args JVM adicionales (al final)
-  prependArgs?:  string[];   // Args JVM (antes de los resueltos por el engine)
+  minMemoryMb?:  number;    // RAM mínima en MB (el engine clampea si es muy bajo)
+  maxMemoryMb?:  number;    // RAM máxima en MB
+  extraArgs?:    string[];  // Argumentos JVM extra, se agregan al final
+  prependArgs?:  string[];  // Argumentos que van antes de los generados por el engine
 }
 ```
 
 ---
 
-## Ventana y branding
+## SessionSnapshot
 
-```ts
-interface WindowConfig {
-  width?:      number;    // Ancho de la ventana en píxeles
-  height?:     number;    // Alto de la ventana en píxeles
-  fullscreen?: boolean;   // Pantalla completa (default: false)
-}
-
-interface LauncherBranding {
-  name?:    string;   // Nombre del launcher (aparece en el menú de Minecraft)
-  version?: string;   // Versión del launcher
-}
-```
-
----
-
-## Features y personalización del juego
-
-```ts
-interface LaunchFeatures {
-  demo?:       boolean;     // Activar modo demo
-  quickPlay?:  {
-    mode:  'singleplayer' | 'multiplayer' | 'realms';
-    value: string;          // Para multiplayer: dirección del servidor
-  };
-}
-
-interface GameCustomization {
-  gameDir?:             string;                    // Directorio del juego (saves, options, etc.)
-  extraGameArgs?:       string[];                  // Args adicionales para el juego
-  extraJvmProperties?:  Record<string, string>;    // Propiedades JVM (-Dprop=value)
-  disableMultiplayer?:  boolean;                   // Deshabilitar botón de multijugador
-  disableChat?:         boolean;                   // Deshabilitar chat
-  serverHost?:          string;                    // Conectar a este servidor al arrancar
-  serverPort?:          number;                    // Puerto del servidor
-}
-```
-
----
-
-## Configuración de instancia
-
-```ts
-interface InstanceConfig {
-  modLoader?:         'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt' | 'liteloader';
-  modLoaderVersion?:  string;
-  javaPath?:          string;
-  minMemoryMb?:       number;
-  maxMemoryMb?:       number;
-  hardwareAccel?:     boolean;
-  gcPreset?:          'auto' | 'g1gc_basic' | 'g1gc_optimized' | 'zgc' | 'shenandoah';
-  jvmArgs?:           string[];
-  extraGameArgs?:     string[];
-  jvmProperties?:     Record<string, string>;
-  launcherName?:      string;
-  launcherVersion?:   string;
-  serverHost?:        string;
-  serverPort?:        number;
-  disableMultiplayer?: boolean;
-  disableChat?:       boolean;
-  customGameDir?:     string;
-}
-
-interface CreateInstanceOptions {
-  name:         string;
-  mcVersion:    string;
-  config?:      InstanceConfig;
-  autoInstall?: boolean;         // Si true, instala automáticamente al crear
-  install?:     AutoInstallConfig; // Opciones de instalación si autoInstall: true
-}
-
-interface AutoInstallConfig {
-  sharedPath?:  string;
-  download?: {
-    client?:    boolean;
-    libraries?: boolean;
-    assets?:    boolean;
-    natives?:   boolean;
-    jvm?:       boolean;
-  };
-  verifySHA1?:  boolean;
-  maxThreads?:  number;
-}
-```
-
----
-
-## Respuestas de la API
-
-```ts
-interface InstallResponse {
-  sessionId:    string;
-  version:      string;
-  instancePath: string;
-  status:       'started';
-  progress:     string;   // URL para polling: "GET /progress?sessionId=..."
-  websocket:    string;   // URL del WebSocket
-}
-
-interface LaunchResponse {
-  launchId:        string;
-  status:          'launching';
-  version:         string;
-  username:        string;
-  instancePath:    string;
-  authlibInjector: { enabled: boolean; server?: string };
-  message:         string;
-  kill:            string;   // Endpoint para matar: "POST /launch/kill/..."
-}
-
-interface CreateInstanceResponse {
-  id:               string;
-  name:             string;
-  path:             string;
-  installSessionId?: string;   // Solo si autoInstall: true
-  installStatus?:   'started';
-  installProgress?: string;
-}
-
-interface InstanceInfo {
-  id:              string;
-  name:            string;
-  mcVersion:       string;
-  modLoader:       string;
-  modLoaderVersion?: string;
-  minMemoryMb:     number;
-  maxMemoryMb:     number;
-  hardwareAccel:   boolean;
-  gcPreset:        string | null;
-  launcherName:    string | null;
-  launcherVersion: string | null;
-  serverHost:      string | null;
-  serverPort:      number | null;
-  jvmArgs:         string[];
-  extraGameArgs:   string[];
-  createdAt:       string;
-  lastPlayedAt:    string | null;
-  totalPlayHours:  string;
-  path:            string;
-  installed:       boolean;
-}
-```
-
----
-
-## Sesiones y progreso
+Estado de una sesión de descarga. Lo recibís tanto por WebSocket como por polling en `/progress`.
 
 ```ts
 interface SessionSnapshot {
   sessionId:       string;
   status:          'pending' | 'running' | 'completed' | 'failed';
-  createdAt:       number;    // timestamp en ms
+  createdAt:       number;   // Unix timestamp ms
   totalFiles:      number;
-  completedFiles:  number;    // archivos descargados nuevos
-  skippedFiles:    number;    // archivos reutilizados (ya existían con SHA-1 correcto)
+  completedFiles:  number;
+  skippedFiles:    number;   // Archivos que ya existían y pasaron verificación
   failedFiles:     number;
   pendingFiles:    number;
-  totalBytes:      number;
-  downloadedBytes: number;
-  overallPercent:  number;    // 0-100
-  error?:          string;
-}
-```
-
----
-
-## Sistema y versiones
-
-```ts
-interface SystemResourcesResponse {
-  cpu: {
-    cores:             number;
-    optimalDlThreads:  number;
-  };
-  ram: {
-    totalMb:           number;
-    estimatedFreeMb:   number;
-    reservedForOsMb:   number;
-  };
-  recommended: {
-    downloadThreads:   number;
-    mcMinRamMb:        number;
-    mcMaxRamMb:        number;
-    gcPreset:          'g1gc_basic' | 'g1gc_optimized' | 'zgc';
-  };
-}
-
-interface VersionEntry {
-  id:          string;
-  type:        'release' | 'snapshot' | 'old_alpha' | 'old_beta';
-  releaseTime: string;   // ISO 8601
-  url:         string;
-}
-
-interface VersionsResponse {
-  latest:   { release: string; snapshot: string };
-  count:    number;
-  filter?:  string;
-  versions: VersionEntry[];
-}
-```
-
----
-
-## Eventos del WebSocket
-
-```ts
-interface CoreEvents {
-  // Conexión
-  'connected':               { message: string; version: string };
-
-  // Instalación
-  'install_step':            { sessionId: string; step: InstallStep; [key: string]: unknown };
-  'manifest_resolved':       { sessionId: string; version: string };
-  'tasks_ready':             { sessionId: string; totalTasks: number; breakdown: TaskBreakdown };
-  'session_started':         { session: string; totalFiles: number; totalBytes: number };
-  'session_progress':        SessionProgress;
-  'session_completed':       { session: string; totalFiles: number; totalBytes: number };
-  'session_failed':          { session: string; reason: string };
-
-  // Descarga por archivo
-  'download_start':          { sessionId: string; category: FileCategory; file: string; total: number };
-  'download_progress':       { sessionId: string; category: FileCategory; file: string; downloaded: number; total: number; percent: number };
-  'download_complete':       { sessionId: string; category: FileCategory; file: string; bytes: number; skipped: boolean };
-  'download_error':          { sessionId: string; category: FileCategory; file: string; error: string };
-  'sha1_check':              { sessionId: string; file: string; passed: boolean; expected: string; computed: string };
-
-  // Runtime Java
-  'runtime_download_start':    { session: string; component: string; javaVersion: string; totalFiles: number };
-  'runtime_download_complete': { session: string; javaVersion: string; javaPath: string };
-  'runtime_ready':             { version: string; component: string; javaPath: string };
-  'runtime_error':             { version: string; error: string };
-
-  // Lanzamiento
-  'launch_preparing':        { launchId: string; version: string };
-  'launch_command_ready':    { launchId: string; command: string[]; mainClass: string; javaExec: string; offline: boolean };
-  'launch_started':          { launchId: string; version: string; username: string; gameDir: string; authlib: boolean; javaExec: string; offline: boolean };
-  'launch_failed':           { launchId: string; error: string };
-  'game_log':                { launchId: string; line: string };
-  'game_exited':             { launchId: string; exitCode: number; status: 'clean' | 'crash' };
-
-  // Debug / interno
-  'debug':                   { sessionId: string; message: string };
-
-  // Solo en el cliente Node.js (no viene del servidor)
-  'ws:disconnected':         void;
-}
-
-type InstallStep =
-  | 'resolving_version'
-  | 'fetching_asset_index'
-  | 'downloading_jvm'
-  | 'building_task_list'
-  | 'downloading'
-  | 'extracting_natives';
-
-type FileCategory = 'client' | 'library' | 'asset' | 'native' | 'asset_index' | 'runtime';
-
-interface SessionProgress {
-  session:         string;
-  completedFiles:  number;
-  skippedFiles:    number;
-  totalFiles:      number;
-  percent:         number;
+  overallPercent:  number;   // 0-100
   downloadedBytes: number;
   totalBytes:      number;
-}
-
-interface TaskBreakdown {
-  client:      number;
-  libraries:   number;
-  assets:      number;
-  natives:     number;
-  asset_index: number;
+  error?:          string;   // Solo presente si status === 'failed'
 }
 ```
 
 ---
 
-## Usar los tipos en TypeScript
+## InstalledLoaderState
+
+El estado que persiste en disco después de instalar un modloader. Se puede consultar con `getModLoaderState(instancePath)`.
 
 ```ts
-import type {
-  InstallOptions,
-  LaunchOptions,
-  SessionSnapshot,
-  CoreEvents,
-  InstanceInfo,
-} from './minecraft-core';
-
-import { CoreClient, CoreProcess } from './minecraft-core';
-
-const proc = new CoreProcess({ jarPath: './novacore-engine.jar' });
-const client = new CoreClient();
-
-await proc.start();
-await client.connect();
-
-// El tipado es completo en todos los métodos
-const snap: SessionSnapshot = await client.progress('session-...');
-
-// Los eventos también tienen tipo completo
-client.on('session_progress', (data) => {
-  // data es SessionProgress — TypeScript sabe qué campos tiene
-  console.log(data.percent, data.completedFiles);
-});
-
-client.on('game_exited', (data) => {
-  // data tiene launchId, exitCode, status
-  if (data.status === 'crash') {
-    console.error('Crash con código', data.exitCode);
-  }
-});
+interface InstalledLoaderState {
+  loaderType:       string;        // forge | fabric | quilt | etc.
+  loaderVersion:    string;        // Versión del loader (ej: "56.0.9", "0.18.6")
+  minecraftVersion: string;        // Versión de MC base (ej: "1.21.6")
+  versionJsonId:    string;        // ID del version.json instalado (ej: "1.21.6-forge-56.0.9")
+  installerJarPath: string | null; // Path al installer .jar, null para loaders sin installer
+  installedAt:      number;        // Unix timestamp ms
+}
 ```
+
+---
+
+## CoreClient — constructor
+
+```ts
+new CoreClient({
+  accessToken:    string;   // Token generado por CoreProcess al arrancar el engine
+  host?:          string;   // Default "localhost"
+  httpPort?:      number;   // Default 7878
+  wsPort?:        number;   // Default 7879
+  maxReconnects?: number;   // 0 = infinito (default)
+})
+```
+
+---
+
+## CoreClient — getters
+
+```ts
+client.state     // 'disconnected' | 'connecting' | 'connected' | 'reconnecting'
+client.connected // true si el WS está activo y autenticado
+```
+
+---
+
+## CoreClient — eventos
+
+Todos los eventos que emite el engine por WebSocket, con sus firmas:
+
+```ts
+// Conectividad
+client.on('connectivity:change', (online: boolean) => void)
+client.on('ws:connected',        () => void)
+client.on('ws:disconnected',     (data: { code: number; reason: string }) => void)
+client.on('offline:install',     (data: { version: string }) => void)
+client.on('offline:launch',      (data: { username: string }) => void)
+
+// Instalación
+client.on('install_step',  (data: { sessionId: string; step: string; [k: string]: unknown }) => void)
+client.on('tasks_ready',   (data: { sessionId: string; totalTasks: number; offline: boolean; breakdown: Record<string, number> }) => void)
+client.on('offline_mode',  (data: { sessionId: string; version: string; reason: string }) => void)
+
+// Sesiones de descarga
+client.on('session_progress',  (data: SessionSnapshot) => void)
+client.on('session_completed', (data: SessionSnapshot) => void)
+client.on('session_failed',    (data: { sessionId: string; reason: string }) => void)
+
+// Launch — ciclo de vida
+client.on('launch_preparing',            (data: { launchId: string; version: string }) => void)
+client.on('launch_verification_failed',  (data: { launchId: string; missing: string[]; hint: string }) => void)
+client.on('launch_starting',             (data: { launchId: string; mainClass: string; version: string }) => void)
+client.on('launch_started',              (data: { launchId: string; pid: number }) => void)
+client.on('launch_exited',               (data: { launchId: string; exitCode: number }) => void)
+client.on('launch_failed',               (data: { launchId: string; error: string }) => void)
+client.on('launch_log_file',             (data: { launchId: string; logFile: string }) => void)
+
+// Log del juego
+client.on('game_stdout', (data: { launchId: string; line: string }) => void)
+client.on('game_stderr', (data: { launchId: string; line: string }) => void)
+client.on('game_log',    (data: { launchId: string; line: string; stream: 'stdout' | 'stderr' }) => void)
+
+// Modloaders
+client.on('modloader_resolving',      (data: { sessionId: string; loader: string; loaderVersion: string; mcVersion: string }) => void)
+client.on('modloader_downloading',    (data: { sessionId: string; loader: string; files: number }) => void)
+client.on('modloader_processor',      (data: { sessionId: string; step: number; total: number; jar: string }) => void)
+client.on('modloader_install_start',  (data: { sessionId: string; loader: string; version: string }) => void)
+client.on('modloader_install_done',   (data: { sessionId: string; loader: string; versionId: string }) => void)
+client.on('modloader_installed',      (data: { sessionId: string; loader: string; loaderVersion: string; versionJsonId: string }) => void)
+```
+
+---
+
+## CoreProcess
+
+```ts
+const proc = new CoreProcess({
+  jarPath:      './novacore-engine.jar',
+  port?:        7878,    // Puerto HTTP, default 7878
+  wsPort?:      7879,    // Puerto WebSocket, default 7879
+  javaPath?:    'java',  // Ejecutable para lanzar el engine
+  maxMemoryMb?: 256,     // RAM del proceso del engine, no del juego
+  debug?:       false,
+});
+
+const { accessToken, httpPort, wsPort } = await proc.start();
+
+proc.isRunning();  // boolean
+await proc.stop();
+
+proc.port;    // Puerto HTTP activo
+proc.wsPort;  // Puerto WS activo
+```
+
+`start()` spawna el JAR, espera a que el engine esté listo, y devuelve el `accessToken` que necesitás para construir el `CoreClient`. El token es generado fresco en cada arranque del engine.

@@ -2,7 +2,7 @@
 
 const path        = require('path');
 const CoreProcess = require('../CoreProcess');
-const CoreClient  = require('../CoreClient');
+const { CoreClient }  = require('../CoreClient');
 const {
     JAR_PATH, MC_VERSION, SHARED_DIR, INSTANCES_DIR,
     LOG_DIR, LAUNCHER_NAME, DEFAULT_AUTH, DEFAULT_WINDOW,
@@ -26,7 +26,7 @@ async function main() {
     await proc.start();
     proc.on('stderr', (line) => { if (!line.includes('WARNING')) console.error('[Java]', line); });
     
-    const client = new CoreClient();
+    const client = new CoreClient({ accessToken: proc.accessToken });
     await client.connect();
     
     client.on('debug', (d) => console.log(`  [core] ${d.message}`));

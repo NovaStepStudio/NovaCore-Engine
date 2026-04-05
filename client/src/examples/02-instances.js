@@ -1,7 +1,7 @@
 'use strict';
 
 const CoreProcess = require('../CoreProcess');
-const CoreClient = require('../CoreClient');
+const { CoreClient } = require('../CoreClient');
 const { JAR_PATH, MC_VERSION, INSTANCES_DIR, SHARED_DIR, LOG_DIR, LAUNCHER_NAME } = require('./config');
 
 async function main() {
@@ -18,7 +18,7 @@ async function main() {
     await proc.start();
     proc.on('stderr', (line) => { if (!line.includes('WARNING')) console.error('[Java]', line); });
     
-    const client = new CoreClient();
+    const client = new CoreClient({ accessToken: proc.accessToken });
     await client.connect();
     
     console.log('══ Crear instancia (sin auto-install) ═════\n');

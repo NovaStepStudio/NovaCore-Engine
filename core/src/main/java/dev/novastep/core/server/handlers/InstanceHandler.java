@@ -20,14 +20,12 @@ public class InstanceHandler implements HttpHandler {
 
     private final InstanceManager    instanceManager;
     private final InstallOrchestrator orchestrator;
-    private final String             instancesRootPath;
+
 
     public InstanceHandler(InstanceManager instanceManager,
-                           InstallOrchestrator orchestrator,
-                           String instancesRootPath) {
+                           InstallOrchestrator orchestrator) {
         this.instanceManager   = instanceManager;
         this.orchestrator      = orchestrator;
-        this.instancesRootPath = instancesRootPath;
     }
 
     @Override

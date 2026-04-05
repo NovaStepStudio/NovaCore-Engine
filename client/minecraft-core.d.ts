@@ -1,389 +1,316 @@
 export interface InstallOptions {
-  version:      string;
-  instancePath: string;
-  sharedPath?:  string;
-  download?: {
-    client?:    boolean;
-    libraries?: boolean;
-    assets?:    boolean;
-    natives?:   boolean;
-    jvm?:       boolean;
-  };
-  verifySHA1?:  boolean;
-  maxThreads?:  number;
-  debug?:       boolean;
+    version:      string;
+    instancePath: string;
+    sharedPath?:  string;
+    download?: {
+        client?:    boolean;
+        libraries?: boolean;
+        assets?:    boolean;
+        natives?:   boolean;
+        jvm?:       boolean;
+    };
+    verifySHA1?:       boolean;
+    maxThreads?:       number;
+    debug?:            boolean;
+    modloader?:        string;
+    modloaderVersion?: string;
 }
 
 export interface LaunchOptions {
-  version:      string;
-  instancePath: string;
-  sharedPath?:  string;
-  javaPath?:    string;
-
-  auth?:            AuthConfig;
-  authlibInjector?: AuthlibInjectorConfig;
-  jvm?:             JvmConfig;
-  window?:          WindowConfig;
-  launcher?:        LauncherBranding;
-  features?:        LaunchFeatures;
-  game?:            GameCustomization;
-
-  hardwareAcceleration?: boolean;
-  gpuPreference?:        'auto' | 'dgpu' | 'igpu';
-  gcPreset?:             'auto' | 'g1gc_basic' | 'g1gc_optimized' | 'zgc' | 'shenandoah';
+    version:               string;
+    instancePath:          string;
+    sharedPath?:           string;
+    javaPath?:             string;
+    hardwareAcceleration?: boolean;
+    gcPreset?:             'auto' | 'g1gc_basic' | 'g1gc_optimized' | 'zgc' | 'shenandoah';
+    gpuPreference?:        'auto' | 'dgpu' | 'igpu';
+    auth?:                 AuthConfig;
+    authlibInjector?:      AuthlibInjectorConfig;
+    jvm?:                  JvmConfig;
+    window?:               WindowConfig;
+    launcher?:             LauncherBranding;
+    features?:             LaunchFeatures;
+    game?:                 GameCustomization;
 }
 
 export interface AuthConfig {
-  username?:     string;
-  uuid?:         string;
-  accessToken?:  string;
-  userType?:     'msa' | 'legacy' | 'offline';
-  clientId?:     string;
-  xuid?:         string;
+    username?:    string;
+    uuid?:        string;
+    accessToken?: string;
+    userType?:    'msa' | 'legacy' | 'offline';
+    clientId?:    string;
+    xuid?:        string;
 }
 
 export interface AuthlibInjectorConfig {
-  enabled:   boolean;
-  jarPath:   string;
-  serverUrl: string;
+    enabled:   boolean;
+    jarPath:   string;
+    serverUrl: string;
 }
 
 export interface JvmConfig {
-  minMemoryMb?:  number;
-  maxMemoryMb?:  number;
-  extraArgs?:    string[];
-  prependArgs?:  string[];
+    minMemoryMb?:  number;
+    maxMemoryMb?:  number;
+    extraArgs?:    string[];
+    prependArgs?:  string[];
 }
 
 export interface WindowConfig {
-  width?:      number;
-  height?:     number;
-  fullscreen?: boolean;
+    width?:      number;
+    height?:     number;
+    fullscreen?: boolean;
 }
 
 export interface LauncherBranding {
-  name?:    string;
-  version?: string;
+    name?:    string;
+    version?: string;
 }
 
 export interface LaunchFeatures {
-  demo?:       boolean;
-  quickPlay?:  {
-    mode:  'singleplayer' | 'multiplayer' | 'realms';
-    value: string;
-  };
+    demo?:      boolean;
+    quickPlay?: {
+        mode:  'singleplayer' | 'multiplayer' | 'realms';
+        value: string;
+    };
 }
 
 export interface GameCustomization {
-  gameDir?:             string;
-  extraGameArgs?:       string[];
-  extraJvmProperties?:  Record<string, string>;
-  disableMultiplayer?:  boolean;
-  disableChat?:         boolean;
-  serverHost?:          string;
-  serverPort?:          number;
+    gameDir?:            string;
+    extraGameArgs?:      string[];
+    extraJvmProperties?: Record<string, string>;
+    disableMultiplayer?: boolean;
+    disableChat?:        boolean;
+    serverHost?:         string;
+    serverPort?:         number;
 }
 
 export interface CreateInstanceOptions {
-  name:        string;
-  mcVersion:   string;
-  config?:     InstanceConfig;
-  autoInstall?: boolean;
-  install?:    AutoInstallConfig;
+    name:         string;
+    mcVersion:    string;
+    config?:      InstanceConfig;
+    autoInstall?: boolean;
+    install?:     AutoInstallConfig;
 }
 
 export interface AutoInstallConfig {
-  sharedPath?:  string;
-  download?: {
-    client?:    boolean;
-    libraries?: boolean;
-    assets?:    boolean;
-    natives?:   boolean;
-    jvm?:       boolean;
-  };
-  verifySHA1?:  boolean;
-  maxThreads?:  number;
+    sharedPath?: string;
+    download?: {
+        client?:    boolean;
+        libraries?: boolean;
+        assets?:    boolean;
+        natives?:   boolean;
+        jvm?:       boolean;
+    };
+    verifySHA1?: boolean;
+    maxThreads?: number;
 }
 
 export interface InstanceConfig {
-  modLoader?:         'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt' | 'liteloader';
-  modLoaderVersion?:  string;
-  javaPath?:          string;
-  minMemoryMb?:       number;
-  maxMemoryMb?:       number;
-  hardwareAccel?:     boolean;
-  gcPreset?:          'auto' | 'g1gc_basic' | 'g1gc_optimized' | 'zgc' | 'shenandoah';
-  jvmArgs?:           string[];
-  extraGameArgs?:     string[];
-  jvmProperties?:     Record<string, string>;
-  launcherName?:      string;
-  launcherVersion?:   string;
-  serverHost?:        string;
-  serverPort?:        number;
-  disableMultiplayer?: boolean;
-  disableChat?:       boolean;
-  customGameDir?:     string;
+    modLoader?:          string;
+    javaPath?:           string;
+    minMemoryMb?:        number;
+    maxMemoryMb?:        number;
+    hardwareAccel?:      boolean;
+    gcPreset?:           'auto' | 'g1gc_basic' | 'g1gc_optimized' | 'zgc' | 'shenandoah';
+    jvmArgs?:            string[];
+    extraGameArgs?:      string[];
+    jvmProperties?:      Record<string, string>;
+    launcherName?:       string;
+    launcherVersion?:    string;
+    serverHost?:         string;
+    serverPort?:         number;
+    disableMultiplayer?: boolean;
+    disableChat?:        boolean;
+    customGameDir?:      string;
 }
 
 export interface RuntimeDownloadOptions {
-  version:      string;
-  instancePath: string;
+    version:      string;
+    instancePath: string;
+    sharedPath?:  string;
+}
+
+export interface RuntimeDownloadResponse {
+    status:       'downloading';
+    version:      string;
+    instancePath: string;
+    runtimeDir:   string;
+    shared:       boolean;
+    message:      string;
 }
 
 export interface SessionSnapshot {
-  sessionId:       string;
-  status:          'pending' | 'running' | 'completed' | 'failed';
-  createdAt:       number;
-  totalFiles:      number;
-  completedFiles:  number;
-  skippedFiles:    number;
-  failedFiles:     number;
-  pendingFiles:    number;
-  totalBytes:      number;
-  downloadedBytes: number;
-  overallPercent:  number;
-  error?:          string;
+    sessionId:       string;
+    status:          'pending' | 'running' | 'completed' | 'failed';
+    createdAt:       number;
+    totalFiles:      number;
+    completedFiles:  number;
+    skippedFiles:    number;
+    failedFiles:     number;
+    pendingFiles:    number;
+    overallPercent:  number;
+    downloadedBytes: number;
+    totalBytes:      number;
+    error?:          string;
 }
 
-export interface InstallResponse {
-  sessionId:    string;
-  version:      string;
-  instancePath: string;
-  status:       'started';
-  progress:     string;
-  websocket:    string;
+export interface ModLoaderInstallOptions {
+    loader:           string;
+    loaderVersion?:   string;
+    minecraftVersion: string;
+    instancePath:     string;
+    sharedPath?:      string;
+    maxThreads?:      number;
+    debug?:           boolean;
 }
 
-export interface LaunchResponse {
-  launchId:        string;
-  status:          'launching';
-  version:         string;
-  username:        string;
-  instancePath:    string;
-  authlibInjector: { enabled: boolean; server?: string };
-  message:         string;
-  kill:            string;
+export interface ModLoaderInstallResponse {
+    sessionId: string;
+    loader:    string;
+    mcVersion: string;
+    status:    'started';
 }
 
-export interface CreateInstanceResponse {
-  id:               string;
-  name:             string;
-  path:             string;
-  installSessionId?: string;
-  installStatus?:   'started';
-  installProgress?: string;
+export interface InstalledLoaderState {
+    loaderType:       string;
+    loaderVersion:    string;
+    minecraftVersion: string;
+    versionJsonId:    string;
+    installerJarPath: string | null;
+    installedAt:      number;
 }
 
-export interface InstanceInfo {
-  id:              string;
-  name:            string;
-  mcVersion:       string;
-  modLoader:       string;
-  modLoaderVersion?: string;
-  minMemoryMb:     number;
-  maxMemoryMb:     number;
-  hardwareAccel:   boolean;
-  gcPreset:        string | null;
-  launcherName:    string | null;
-  launcherVersion: string | null;
-  serverHost:      string | null;
-  serverPort:      number | null;
-  jvmArgs:         string[];
-  extraGameArgs:   string[];
-  createdAt:       string;
-  lastPlayedAt:    string | null;
-  totalPlayHours:  string;
-  path:            string;
-  installed:       boolean;
+export interface LoaderVersion {
+    loaderVersion:    string;
+    minecraftVersion: string;
+    stable:           boolean;
 }
 
-export interface SystemResourcesResponse {
-  cpu: {
-    cores:             number;
-    optimalDlThreads:  number;
-  };
-  ram: {
-    totalMb:           number;
-    estimatedFreeMb:   number;
-    reservedForOsMb:   number;
-  };
-  recommended: {
-    downloadThreads:   number;
-    mcMinRamMb:        number;
-    mcMaxRamMb:        number;
-    gcPreset:          'g1gc_basic' | 'g1gc_optimized' | 'zgc';
-  };
+export interface ModLoaderVersionsResponse {
+    versions: LoaderVersion[];
 }
 
-export interface VersionEntry {
-  id:          string;
-  type:        'release' | 'snapshot' | 'old_alpha' | 'old_beta';
-  releaseTime: string;
-  url:         string;
+export interface ModLoaderListResponse {
+    loaders: string[];
 }
 
-export interface VersionsResponse {
-  latest:   { release: string; snapshot: string };
-  count:    number;
-  filter?:  string;
-  versions: VersionEntry[];
-}
-
-export interface ApiInfoResponse {
-  name:      string;
-  vendor:    string;
-  version:   string;
-  java:      string;
-  os:        string;
-  endpoints: {
-    install:      string;
-    launch:       string;
-    launch_kill:  string;
-    launch_status: string;
-    progress:     string;
-    sessions:     string;
-    versions:     string;
-    runtime:      string;
-    instances:    string;
-    system:       string;
-    debug:        { client: string; libraries: string; assets: string; natives: string };
-  };
-}
-
-export interface DebugFileEntry {
-  file:        string;
-  progress:    number;
-  size:        number;
-  downloaded:  number;
-  destination: string;
-  status:      'pending' | 'downloading' | 'done' | 'skipped' | 'failed';
-  url:         string;
-  error?:      string;
-}
-
-export interface DebugResponse {
-  sessionId: string;
-  category:  FileCategory;
-  total:     number;
-  summary:   { done: number; skipped: number; failed: number; pending: number; downloading: number };
-  files:     DebugFileEntry[];
-}
-
-export type FileCategory = 'client' | 'library' | 'asset' | 'native' | 'asset_index' | 'runtime';
-
-export type InstallStep =
-  | 'resolving_version'
-  | 'fetching_asset_index'
-  | 'downloading_jvm'
-  | 'building_task_list'
-  | 'downloading'
-  | 'extracting_natives';
-
-export interface SessionProgress {
-  session:         string;
-  completedFiles:  number;
-  skippedFiles:    number;
-  totalFiles:      number;
-  percent:         number;
-  downloadedBytes: number;
-  totalBytes:      number;
-}
-
-export interface TaskBreakdown {
-  client:      number;
-  libraries:   number;
-  assets:      number;
-  natives:     number;
-  asset_index: number;
-}
-
-export interface CoreEvents {
-  'connected':               { message: string; version: string };
-  'install_step':            { sessionId: string; step: InstallStep; [key: string]: unknown };
-  'manifest_resolved':       { sessionId: string; version: string };
-  'tasks_ready':             { sessionId: string; totalTasks: number; breakdown: TaskBreakdown };
-  'session_started':         { session: string; totalFiles: number; totalBytes: number };
-  'session_progress':        SessionProgress;
-  'session_completed':       { session: string; totalFiles: number; totalBytes: number };
-  'session_failed':          { session: string; reason: string };
-  'download_start':          { sessionId: string; category: FileCategory; file: string; total: number };
-  'download_progress':       { sessionId: string; category: FileCategory; file: string; downloaded: number; total: number; percent: number };
-  'download_complete':       { sessionId: string; category: FileCategory; file: string; bytes: number; skipped: boolean };
-  'download_error':          { sessionId: string; category: FileCategory; file: string; error: string };
-  'sha1_check':              { sessionId: string; file: string; passed: boolean; expected: string; computed: string };
-  'runtime_download_start':  { session: string; component: string; javaVersion: string; totalFiles: number };
-  'runtime_download_complete': { session: string; javaVersion: string; javaPath: string };
-  'runtime_ready':           { version: string; component: string; javaPath: string };
-  'runtime_error':           { version: string; error: string };
-  'launch_preparing':        { launchId: string; version: string };
-  'launch_command_ready':    { launchId: string; command: string[]; mainClass: string; javaExec: string; offline: boolean };
-  'launch_started':          { launchId: string; version: string; username: string; gameDir: string; authlib: boolean; javaExec: string; offline: boolean };
-  'launch_failed':           { launchId: string; error: string };
-  'game_log':                { launchId: string; line: string };
-  'game_exited':             { launchId: string; exitCode: number; status: 'clean' | 'crash' };
-  'debug':                   { sessionId: string; message: string };
-  'ws:disconnected':         void;
-}
+export type LaunchExitInfo     = { launchId: string; exitCode: number };
+export type ModLoaderInstalled = { sessionId: string; loader: string; loaderVersion: string; versionJsonId: string };
 
 export declare class CoreClient {
-  constructor(opts?: { host?: string; httpPort?: number; wsPort?: number });
+    constructor(opts: {
+        accessToken:    string;
+        host?:          string;
+        httpPort?:      number;
+        wsPort?:        number;
+        maxReconnects?: number;
+    });
 
-  connect(): Promise<void>;
-  disconnect(): void;
+    readonly host:        string;
+    readonly httpPort:    number;
+    readonly wsPort:      number;
+    readonly accessToken: string;
+    readonly baseUrl:     string;
+    readonly wsUrl:       string;
+    readonly state:       'disconnected' | 'connecting' | 'connected' | 'reconnecting';
+    readonly connected:   boolean;
 
-  apiInfo(): Promise<ApiInfoResponse>;
-  systemResources(): Promise<SystemResourcesResponse>;
-  versions(type?: 'release' | 'snapshot' | 'old_alpha' | 'old_beta' | null): Promise<VersionsResponse>;
-  install(opts: InstallOptions): Promise<InstallResponse>;
-  progress(sessionId: string): Promise<SessionSnapshot>;
-  allSessions(): Promise<{ count: number; sessions: SessionSnapshot[] }>;
-  launch(opts: LaunchOptions): Promise<LaunchResponse>;
-  killLaunch(launchId: string): Promise<{ launchId: string; status: 'killed' }>;
-  launchStatus(launchId: string): Promise<{ launchId: string; running: boolean; status: string }>;
-  downloadRuntime(version: string, instancePath: string): Promise<unknown>;
-  debugCategory(category: FileCategory, sessionId?: string | null): Promise<DebugResponse>;
+    connect(): Promise<void>;
+    disconnect(): void;
 
-  createInstance(opts: CreateInstanceOptions): Promise<CreateInstanceResponse>;
-  listInstances(): Promise<{ count: number; instances: InstanceInfo[] }>;
-  getInstance(idOrName: string): Promise<InstanceInfo>;
-  getInstancePath(idOrName: string): Promise<{ id: string; path: string }>;
-  updateInstance(idOrName: string, updates: Partial<InstanceConfig>): Promise<{ updated: boolean; id: string }>;
-  deleteInstance(idOrName: string): Promise<{ deleted: boolean; id: string }>;
+    isOnline(): Promise<boolean>;
+    startConnectivityMonitor(intervalMs?: number): void;
+    stopConnectivityMonitor(): void;
 
-  waitForInstall(sessionId: string, onProgress?: (snap: SessionSnapshot) => void): Promise<SessionSnapshot>;
-  waitForGame(launchId: string): Promise<{ launchId: string; exitCode: number; status: 'clean' | 'crash' }>;
+    apiInfo(): Promise<Record<string, unknown>>;
+    systemResources(): Promise<Record<string, unknown>>;
+    versions(type?: string | null): Promise<{ versions: Array<{ id: string; type: string; releaseTime: string }> }>;
+    progress(sessionId: string): Promise<SessionSnapshot>;
+    allSessions(): Promise<SessionSnapshot[]>;
+    launchStatus(launchId: string): Promise<{ launchId: string; running: boolean; pid?: number }>;
+    debugCategory(category: string, sessionId?: string): Promise<Record<string, unknown>>;
 
-  onEvent<K extends keyof CoreEvents>(event: K, handler: (data: CoreEvents[K]) => void): () => void;
-  onGameLog(launchId: string, handler: (line: string) => void): () => void;
+    install(opts: InstallOptions): Promise<{ sessionId: string }>;
+    launch(opts: LaunchOptions): Promise<{ launchId: string }>;
+    killLaunch(launchId: string): Promise<{ killed: boolean }>;
+    downloadRuntime(opts: RuntimeDownloadOptions): Promise<RuntimeDownloadResponse>;
+    downloadRuntime(version: string, instancePath: string, sharedPath?: string): Promise<RuntimeDownloadResponse>;
 
-  on<K extends keyof CoreEvents>(event: K, listener: (data: CoreEvents[K]) => void): this;
-  once<K extends keyof CoreEvents>(event: K, listener: (data: CoreEvents[K]) => void): this;
-  off<K extends keyof CoreEvents>(event: K, listener: (data: CoreEvents[K]) => void): this;
+    listInstances(): Promise<{ instances: unknown[] }>;
+    getInstance(idOrName: string): Promise<unknown>;
+    getInstancePath(idOrName: string): Promise<{ path: string }>;
+    deleteInstance(idOrName: string): Promise<{ deleted: boolean }>;
+    updateInstance(idOrName: string, updates: Partial<InstanceConfig>): Promise<unknown>;
+    createInstance(opts: CreateInstanceOptions): Promise<{ id: string; name: string; path: string }>;
+
+    waitForInstall(sessionId: string, onProgress?: (snap: SessionSnapshot) => void): Promise<SessionSnapshot>;
+    waitForGame(launchId: string): Promise<LaunchExitInfo>;
+
+    listModLoaders(): Promise<ModLoaderListResponse>;
+    getModLoaderVersions(loaderName: string, mcVersion: string): Promise<ModLoaderVersionsResponse>;
+    installModLoader(opts: ModLoaderInstallOptions): Promise<ModLoaderInstallResponse>;
+    getModLoaderState(instancePath: string): Promise<InstalledLoaderState>;
+    deleteModLoaderState(instancePath: string): Promise<{ removed: boolean }>;
+    waitForModLoader(sessionId: string, onProgress?: (p: { loader: string; files: number }) => void): Promise<ModLoaderInstalled>;
+
+    onEvent(eventType: string, handler: (data: unknown) => void): () => void;
+    onGameLog(launchId: string, handler: (line: string) => void): () => void;
+
+    on(event: 'connectivity:change',        listener: (online: boolean) => void): this;
+    on(event: 'ws:connected',               listener: () => void): this;
+    on(event: 'ws:disconnected',            listener: (data: { code: number; reason: string }) => void): this;
+    on(event: 'offline:install',            listener: (data: { version: string }) => void): this;
+    on(event: 'offline:launch',             listener: (data: { username: string }) => void): this;
+
+    on(event: 'install_step',               listener: (data: { sessionId: string; step: string; [k: string]: unknown }) => void): this;
+    on(event: 'tasks_ready',                listener: (data: { sessionId: string; totalTasks: number; offline: boolean; breakdown: Record<string, number> }) => void): this;
+    on(event: 'offline_mode',               listener: (data: { sessionId: string; version: string; reason: string }) => void): this;
+
+    on(event: 'session_progress',           listener: (data: SessionSnapshot) => void): this;
+    on(event: 'session_completed',          listener: (data: SessionSnapshot) => void): this;
+    on(event: 'session_failed',             listener: (data: { sessionId: string; reason: string }) => void): this;
+
+    on(event: 'launch_preparing',           listener: (data: { launchId: string; version: string }) => void): this;
+    on(event: 'launch_verification_failed', listener: (data: { launchId: string; missing: string[]; hint: string }) => void): this;
+    on(event: 'launch_starting',            listener: (data: { launchId: string; mainClass: string; version: string }) => void): this;
+    on(event: 'launch_started',             listener: (data: { launchId: string; pid: number }) => void): this;
+    on(event: 'launch_exited',              listener: (data: LaunchExitInfo) => void): this;
+    on(event: 'launch_failed',              listener: (data: { launchId: string; error: string }) => void): this;
+    on(event: 'launch_log_file',            listener: (data: { launchId: string; logFile: string }) => void): this;
+
+    on(event: 'game_stdout',                listener: (data: { launchId: string; line: string }) => void): this;
+    on(event: 'game_stderr',                listener: (data: { launchId: string; line: string }) => void): this;
+    on(event: 'game_log',                   listener: (data: { launchId: string; line: string; stream: 'stdout' | 'stderr' }) => void): this;
+
+    on(event: 'modloader_resolving',        listener: (data: { sessionId: string; loader: string; loaderVersion: string; mcVersion: string }) => void): this;
+    on(event: 'modloader_downloading',      listener: (data: { sessionId: string; loader: string; files: number }) => void): this;
+    on(event: 'modloader_processor',        listener: (data: { sessionId: string; step: number; total: number; jar: string }) => void): this;
+    on(event: 'modloader_install_start',    listener: (data: { sessionId: string; loader: string; version: string }) => void): this;
+    on(event: 'modloader_install_done',     listener: (data: { sessionId: string; loader: string; versionId: string }) => void): this;
+    on(event: 'modloader_installed',        listener: (data: ModLoaderInstalled) => void): this;
+
+    on(event: string,                       listener: (...args: unknown[]) => void): this;
+
+    off(event: string, listener: (...args: unknown[]) => void): this;
+    emit(event: string, ...args: unknown[]): boolean;
 }
 
 export declare class CoreProcess {
-  constructor(opts?: {
-    jarPath?:      string;
-    javaPath?:     string;
-    httpPort?:     number;
-    wsPort?:       number;
-    threads?:      number;
-    jvmArgs?:      string[];
-    verbose?:      boolean;
-    instancesDir?: string;
-    logDir?:       string;
-    launcherName?: string;
-    logLevel?:     'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
-  });
+    constructor(opts: {
+        jarPath:      string;
+        port?:        number;
+        wsPort?:      number;
+        javaPath?:    string;
+        maxMemoryMb?: number;
+        debug?:       boolean;
+    });
 
-  start(): Promise<void>;
-  stop(): Promise<void>;
+    start(): Promise<{ accessToken: string; httpPort: number; wsPort: number }>;
+    stop(): Promise<void>;
+    isRunning(): boolean;
 
-  readonly running: boolean;
-  readonly pid: number | undefined;
-
-  on(event: 'log',    listener: (line: string) => void): this;
-  on(event: 'stderr', listener: (line: string) => void): this;
-  on(event: 'exit',   listener: (code: number) => void): this;
-  on(event: 'ready',  listener: () => void): this;
+    readonly port:   number;
+    readonly wsPort: number;
 }
+
+export { CoreClient as default };

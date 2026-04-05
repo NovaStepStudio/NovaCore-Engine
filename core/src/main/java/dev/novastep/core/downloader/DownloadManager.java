@@ -54,7 +54,11 @@ public class DownloadManager {
     public Optional<DownloadSession> getSession(String sessionId) {
         return Optional.ofNullable(sessions.get(sessionId));
     }
-
+    
+    public String registerSessionIfAbsent(String sessionId) {
+        return sessions.computeIfAbsent(sessionId, id -> new DownloadSession(id)).getSessionId();
+    }
+    
     public Collection<DownloadSession> getAllSessions() {
         return Collections.unmodifiableCollection(sessions.values());
     }

@@ -29,13 +29,15 @@ set "GSON=%LIB_DIR%\gson-2.10.1.jar"
 set "WS=%LIB_DIR%\java-websocket-1.5.4.jar"
 set "SLF4J_API=%LIB_DIR%\slf4j-api-2.0.9.jar"
 set "SLF4J_SIMPLE=%LIB_DIR%\slf4j-simple-2.0.9.jar"
+set "CFR=%LIB_DIR%\cfr-0.152.jar"
 
 if not exist "%GSON%"         powershell -Command "Invoke-WebRequest -Uri 'https://repo1.maven.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar' -OutFile '%GSON%' -UseBasicParsing"
 if not exist "%WS%"           powershell -Command "Invoke-WebRequest -Uri 'https://repo1.maven.org/maven2/org/java-websocket/Java-WebSocket/1.5.4/Java-WebSocket-1.5.4.jar' -OutFile '%WS%' -UseBasicParsing"
 if not exist "%SLF4J_API%"    powershell -Command "Invoke-WebRequest -Uri 'https://repo1.maven.org/maven2/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar' -OutFile '%SLF4J_API%' -UseBasicParsing"
 if not exist "%SLF4J_SIMPLE%" powershell -Command "Invoke-WebRequest -Uri 'https://repo1.maven.org/maven2/org/slf4j/slf4j-simple/2.0.9/slf4j-simple-2.0.9.jar' -OutFile '%SLF4J_SIMPLE%' -UseBasicParsing"
+if not exist "%CFR%" powershell -Command "Invoke-WebRequest -Uri 'https://repo1.maven.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar' -OutFile '%CFR%' -UseBasicParsing"
 
-for %%f in ("%GSON%" "%WS%" "%SLF4J_API%" "%SLF4J_SIMPLE%") do (
+for %%f in ("%GSON%" "%WS%" "%SLF4J_API%" "%SLF4J_SIMPLE%" "%CFR%") do (
     if not exist %%f ( echo [ERROR] Falta dep: %%f & exit /b 1 )
 )
 echo [Deps] OK.
@@ -46,7 +48,7 @@ if exist "%SOURCES_FILE%" del "%SOURCES_FILE%"
 for /r "%SRC_DIR%" %%f in (*.java) do echo %%f>> "%SOURCES_FILE%"
 for /f %%i in ('type "%SOURCES_FILE%" ^| find /c /v ""') do echo [Compile] %%i archivos .java encontrados.
 
-set "CP=%GSON%;%WS%;%SLF4J_API%;%SLF4J_SIMPLE%"
+set "CP=%GSON%;%WS%;%SLF4J_API%;%SLF4J_SIMPLE%;%CFR%"
 javac -encoding UTF-8 -cp "%CP%" -d "%BUILD_CLASSES%" @"%SOURCES_FILE%"
 if %ERRORLEVEL% neq 0 ( echo [ERROR] Compilacion fallida. & exit /b 1 )
 echo [Compile] OK.
@@ -61,6 +63,7 @@ jar xf "%GSON%"
 jar xf "%WS%"
 jar xf "%SLF4J_API%"
 jar xf "%SLF4J_SIMPLE%"
+jar xf "%CFR%"
 cd /d "%ROOT%"
 
 xcopy /s /y /q "%BUILD_CLASSES%\*" "%EXTRACT_DIR%\" >NUL

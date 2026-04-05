@@ -112,12 +112,36 @@ public class TaskBuilder {
         if (info.libraries == null) return;
         for (VersionInfo.Library lib : info.libraries) {
             if (!lib.isAllowed()) continue;
-            if (lib.downloads == null) continue;
             if (isNativeLib(lib)) continue;
-            VersionInfo.Artifact artifact = lib.downloads.artifact;
-            if (!isValidArtifact(artifact)) continue;
-            String relativePath = artifact.path != null ? artifact.path : mavenToPath(lib.name);
-            tasks.add(DownloadTask.library(sessionId, shortName(lib.name), artifact.url, libPath.resolve(relativePath), artifact.size, artifact.sha1));
+
+            if (lib.downloads != null && lib.downloads.artifact != null
+                    && lib.downloads.artifact.url != null
+                    && !lib.downloads.artifact.url.isBlank()) {
+                VersionInfo.Artifact artifact = lib.downloads.artifact;
+                if (!isValidArtifact(artifact)) continue;
+                String relativePath = artifact.path != null ? artifact.path : mavenToPath(lib.name);
+                tasks.add(DownloadTask.library(
+                        sessionId, shortName(lib.name), artifact.url,
+                        libPath.resolve(relativePath), artifact.size, artifact.sha1));
+                continue;
+            }
+
+            if (lib.name == null || lib.name.isBlank()) continue;
+
+            LibraryResolver.Resolution resolution = LibraryResolver.resolve(lib);
+            if (!resolution.found()) {
+                if (broadcaster != null) {
+                    broadcaster.emitDebug(sessionId,
+                            "Library sin URL y sin resolver en repos: " + lib.name);
+                }
+                continue;
+            }
+
+            LibraryResolver.Resolution.Found found = (LibraryResolver.Resolution.Found) resolution;
+            Path dest = libPath.resolve(found.path());
+            tasks.add(DownloadTask.library(
+                    sessionId, shortName(lib.name), found.url(),
+                    dest, -1L, null));
         }
     }
 

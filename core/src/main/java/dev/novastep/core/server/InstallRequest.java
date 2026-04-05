@@ -13,7 +13,9 @@ public class InstallRequest {
     public Boolean verifySHA1;
     public Integer maxThreads;
     public Boolean debug;
-
+    public String  modloader;
+    public String  modloaderVersion;
+    
     public static class DownloadOptions {
         public Boolean client;
         public Boolean libraries;

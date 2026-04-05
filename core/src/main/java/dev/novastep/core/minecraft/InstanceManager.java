@@ -127,8 +127,6 @@ public class InstanceManager {
         return metaToMap(readMetadata(dir), dir);
     }
 
-    // PATCH ZONE
-    // Solo pisa campos no nulos porque el pasado confía en el futuro (mala idea).
     public InstanceMeta update(String idOrName, InstanceMeta updates) throws IOException {
         Path dir = findInstanceDir(idOrName);
         if (dir == null) throw new IllegalArgumentException("Instance not found: " + idOrName);
@@ -216,8 +214,6 @@ public class InstanceManager {
         return GSON.fromJson(json, InstanceMeta.class);
     }
     
-    // CONVERSIÓN MÁGICA
-    // Transforma metadata en algo que la UI pueda digerir sin llorar.
     private Map<String, Object> metaToMap(InstanceMeta meta, Path dir) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id",                meta.id);

@@ -7,20 +7,50 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 public final class HttpUtils {
 
     public static final Gson GSON = new Gson();
 
-    private HttpUtils() {}
+    private HttpUtils() { }
+
+    public static boolean handleCors(HttpExchange exchange) throws IOException {
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, X-Access-Token, Authorization");
+        exchange.getResponseHeaders().set("Access-Control-Max-Age", "86400");
+
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+            return true;
+        }
+        return false;
+    }
 
     public static void sendJson(HttpExchange exchange, int status, Object body) throws IOException {
         byte[] bytes = GSON.toJson(body).getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-        addCorsHeaders(exchange);
         exchange.sendResponseHeaders(status, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);
+        }
+    }
+
+    public static void send(HttpExchange exchange, int statusCode, Object responseBody) {
+        try {
+            String jsonResponse = GSON.toJson(responseBody);
+            byte[] bytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
+            
+            exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+            exchange.sendResponseHeaders(statusCode, bytes.length);
+            
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -33,22 +63,23 @@ public final class HttpUtils {
     }
 
     public static void badRequest(HttpExchange exchange, String error) throws IOException {
-        sendJson(exchange, 400, java.util.Map.of("error", error, "status", 400));
+        sendJson(exchange, 400, Map.of("error", error, "status", 400));
     }
 
     public static void notFound(HttpExchange exchange, String error) throws IOException {
-        sendJson(exchange, 404, java.util.Map.of("error", error, "status", 404));
-    }
-
-    public static void methodNotAllowed(HttpExchange exchange) throws IOException {
-        sendJson(exchange, 405, java.util.Map.of(
-            "error", "Method not allowed: " + exchange.getRequestMethod(),
-            "status", 405
-        ));
+        sendJson(exchange, 404, Map.of("error", error, "status", 404));
     }
 
     public static void serverError(HttpExchange exchange, String error) throws IOException {
-        sendJson(exchange, 500, java.util.Map.of("error", error, "status", 500));
+        sendJson(exchange, 500, Map.of("error", error, "status", 500));
+    }
+
+    public static void unauthorized(HttpExchange exchange) throws IOException {
+        sendJson(exchange, 401, Map.of("error", "Unauthorized", "status", 401));
+    }
+
+    public static void methodNotAllowed(HttpExchange exchange) throws IOException {
+        sendJson(exchange, 405, Map.of("error", "Method not allowed: " + exchange.getRequestMethod(), "status", 405));
     }
 
     public static String readBody(HttpExchange exchange) throws IOException {
@@ -59,14 +90,14 @@ public final class HttpUtils {
 
     public static String queryParam(HttpExchange exchange, String key) {
         String query = exchange.getRequestURI().getQuery();
-        if (query == null || query.isBlank()) return null;
-
+        if (query == null || query.isBlank())
+            return null;
         for (String pair : query.split("&")) {
             int eq = pair.indexOf('=');
-            if (eq < 0) continue;
-            String k = pair.substring(0, eq);
-            String v = pair.substring(eq + 1);
-            if (k.equals(key)) return v;
+            if (eq < 0)
+                continue;
+            if (pair.substring(0, eq).equals(key))
+                return pair.substring(eq + 1);
         }
         return null;
     }
@@ -77,20 +108,5 @@ public final class HttpUtils {
             return false;
         }
         return true;
-    }
-
-    public static boolean handleCors(HttpExchange exchange) throws IOException {
-        addCorsHeaders(exchange);
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-            exchange.sendResponseHeaders(204, -1);
-            return true;
-        }
-        return false;
-    }
-
-    private static void addCorsHeaders(HttpExchange exchange) {
-        exchange.getResponseHeaders().set("Access-Control-Allow-Origin",  "*");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
     }
 }

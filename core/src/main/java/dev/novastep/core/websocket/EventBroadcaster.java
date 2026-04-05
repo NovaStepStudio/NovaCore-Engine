@@ -7,6 +7,8 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,8 +17,11 @@ public class EventBroadcaster extends WebSocketServer {
     private static final Gson   GSON = new Gson();
     private static final String LOG  = "EventBroadcaster";
 
-    public EventBroadcaster(int port) {
+    private final String accessToken;
+
+    public EventBroadcaster(int port, String accessToken) {
         super(new InetSocketAddress("localhost", port));
+        this.accessToken = accessToken;
         setReuseAddr(true);
         setConnectionLostTimeout(60);
     }
@@ -28,13 +33,26 @@ public class EventBroadcaster extends WebSocketServer {
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        CoreLogger.get().info(LOG, "Client connected: " + conn.getRemoteSocketAddress());
+        String token = extractQueryParam(handshake.getResourceDescriptor(), "token");
+
+        if (token == null || token.isBlank()) {
+            token = handshake.getFieldValue("X-Access-Token");
+        }
+
+        if (!accessToken.equals(token)) {
+            CoreLogger.get().warn(LOG, "WS rechazado — token inválido desde " + conn.getRemoteSocketAddress());
+            conn.close(1008, "Unauthorized");
+            return;
+        }
+
+        CoreLogger.get().info(LOG, "WS cliente autenticado: " + conn.getRemoteSocketAddress());
         sendTo(conn, "connected", map("message", "novacore-engine ready", "version", "1.0.0"));
     }
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-        CoreLogger.get().info(LOG, "Client disconnected: " + conn.getRemoteSocketAddress());
+        CoreLogger.get().info(LOG, "WS cliente desconectado: " + conn.getRemoteSocketAddress()
+            + " (code=" + code + ")");
     }
 
     @Override
@@ -48,13 +66,12 @@ public class EventBroadcaster extends WebSocketServer {
     public void emit(String eventType, Object payload) {
         Map<String, Object> envelope = new HashMap<>();
         envelope.put("event", eventType);
-        envelope.put("data", payload);
+        envelope.put("data",  payload);
         broadcast(GSON.toJson(envelope));
     }
 
     public void emitDownloadStart(String sessionId, String category, String filename, long totalBytes) {
-        emit("download_start", map(
-            "sessionId", sessionId, "category", category, "file", filename, "total", totalBytes));
+        emit("download_start", map("sessionId", sessionId, "category", category, "file", filename, "total", totalBytes));
     }
 
     public void emitDownloadProgress(String sessionId, String category, String filename, long downloaded, long total) {
@@ -72,8 +89,7 @@ public class EventBroadcaster extends WebSocketServer {
 
     public void emitDownloadError(String sessionId, String category, String filename, String error) {
         CoreLogger.get().error(LOG, "Download error [" + sessionId + "] " + filename + ": " + error);
-        emit("download_error", map(
-            "sessionId", sessionId, "category", category, "file", filename, "error", error));
+        emit("download_error", map("sessionId", sessionId, "category", category, "file", filename, "error", error));
     }
 
     public void emitSessionProgress(String sessionId, int completed, int skipped, int total, int percent,
@@ -114,12 +130,28 @@ public class EventBroadcaster extends WebSocketServer {
     private void sendTo(WebSocket conn, String eventType, Object payload) {
         Map<String, Object> envelope = new HashMap<>();
         envelope.put("event", eventType);
-        envelope.put("data", payload);
+        envelope.put("data",  payload);
         conn.send(GSON.toJson(envelope));
     }
 
+    private static String extractQueryParam(String resource, String key) {
+        if (resource == null) return null;
+        int q = resource.indexOf('?');
+        if (q < 0) return null;
+        String query = resource.substring(q + 1);
+        for (String pair : query.split("&")) {
+            int eq = pair.indexOf('=');
+            if (eq < 0) continue;
+            String k = pair.substring(0, eq);
+            if (k.equals(key)) {
+                return URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8);
+            }
+        }
+        return null;
+    }
+
     private static Map<String, Object> map(Object... kvPairs) {
-        if (kvPairs.length % 2 != 0) throw new IllegalArgumentException("Must be key-value pairs");
+        if (kvPairs.length % 2 != 0) throw new IllegalArgumentException("Deben ser pares clave-valor");
         Map<String, Object> m = new HashMap<>();
         for (int i = 0; i < kvPairs.length; i += 2) m.put((String) kvPairs[i], kvPairs[i + 1]);
         return m;

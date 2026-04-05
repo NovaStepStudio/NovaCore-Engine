@@ -12,62 +12,117 @@ public class ClasspathBuilder {
 
     private final VersionInfo versionInfo;
     private final Path instancePath;
-    private final Path librariesPath;  
-    private final Path assetsPath;     
+    private final Path librariesPath;
+    private final Path assetsPath;
+    private final String vanillaVersionId;
 
-    public ClasspathBuilder(VersionInfo versionInfo, Path instancePath) {
-        this.versionInfo = versionInfo;
-        this.instancePath = instancePath;
-        this.librariesPath = instancePath.resolve("libraries");
-        this.assetsPath = instancePath.resolve("assets");
+    private final List<Path> modloaderEntries = new ArrayList<>();
+
+    public ClasspathBuilder(VersionInfo versionInfo, Path instancePath,
+                             Path librariesPath, Path assetsPath, String vanillaVersionId) {
+        this.versionInfo      = versionInfo;
+        this.instancePath     = instancePath;
+        this.librariesPath    = librariesPath;
+        this.assetsPath       = assetsPath;
+        this.vanillaVersionId = vanillaVersionId != null ? vanillaVersionId : versionInfo.id;
     }
 
-    public ClasspathBuilder(VersionInfo versionInfo, Path instancePath, Path librariesPath, Path assetsPath) {
-        this.versionInfo = versionInfo;
-        this.instancePath = instancePath;
-        this.librariesPath = librariesPath;
-        this.assetsPath = assetsPath;
+    public ClasspathBuilder(VersionInfo versionInfo, Path instancePath) {
+        this(versionInfo, instancePath,
+                instancePath.resolve("libraries"),
+                instancePath.resolve("assets"),
+                versionInfo.id);
+    }
+
+    public ClasspathBuilder(VersionInfo versionInfo, Path instancePath,
+                             Path librariesPath, Path assetsPath) {
+        this(versionInfo, instancePath, librariesPath, assetsPath, versionInfo.id);
     }
 
     public static ClasspathBuilder fromRequest(LaunchRequest req, VersionInfo versionInfo) {
         Path inst = Path.of(req.resolvedInstancePath()).toAbsolutePath();
         Path libs = req.resolvedLibrariesPath().toAbsolutePath();
-        Path ast = req.resolvedAssetsPath().toAbsolutePath();
-        return new ClasspathBuilder(versionInfo, inst, libs, ast);
+        Path ast  = req.resolvedAssetsPath().toAbsolutePath();
+        return new ClasspathBuilder(versionInfo, inst, libs, ast, versionInfo.id);
+    }
+
+    public static ClasspathBuilder fromRequest(LaunchRequest req, VersionInfo versionInfo,
+                                                String vanillaVersionId) {
+        Path inst = Path.of(req.resolvedInstancePath()).toAbsolutePath();
+        Path libs = req.resolvedLibrariesPath().toAbsolutePath();
+        Path ast  = req.resolvedAssetsPath().toAbsolutePath();
+        return new ClasspathBuilder(versionInfo, inst, libs, ast, vanillaVersionId);
+    }
+
+    public void appendModloaderEntries(List<Path> entries) {
+        for (Path p : entries) {
+            if (!modloaderEntries.contains(p)) modloaderEntries.add(p);
+        }
+    }
+
+    public String getVanillaVersionId() {
+        return vanillaVersionId;
+    }
+
+    public String getLibrariesPath() {
+        return librariesPath.toAbsolutePath().toString();
     }
 
     public List<Path> buildClasspathEntries() {
-        List<Path> entries = new ArrayList<>();
+        LinkedHashSet<Path> seen = new LinkedHashSet<>();
+
         if (versionInfo.libraries != null) {
             for (VersionInfo.Library lib : versionInfo.libraries) {
                 if (!lib.isAllowed()) continue;
-                if (lib.downloads == null || lib.downloads.artifact == null) continue;
                 if (TaskBuilder.isNativeLib(lib)) continue;
-                VersionInfo.Artifact artifact = lib.downloads.artifact;
-                if (artifact.path == null || !TaskBuilder.isValidArtifact(artifact)) continue;
-                Path jar = librariesPath.resolve(artifact.path);
-                if (Files.exists(jar)) entries.add(jar);
+
+                Path jar = null;
+                if (lib.downloads != null && lib.downloads.artifact != null && lib.downloads.artifact.path != null) {
+                    jar = librariesPath.resolve(lib.downloads.artifact.path);
+                } else if (lib.name != null && !lib.name.isEmpty()) {
+                    jar = resolveFromMavenCoordinates(lib.name);
+                }
+
+                if (jar != null && Files.exists(jar)) {
+                    seen.add(jar);
+                }
             }
         }
-        Path clientJar = instancePath.resolve("versions").resolve(versionInfo.id).resolve(versionInfo.id + ".jar");
-        if (Files.exists(clientJar)) entries.add(clientJar);
-        return entries;
+
+        for (Path extra : modloaderEntries) {
+            if (Files.exists(extra)) seen.add(extra);
+        }
+
+
+        Path clientJar = instancePath.resolve("versions")
+                .resolve(vanillaVersionId).resolve(vanillaVersionId + ".jar");
+        if (Files.exists(clientJar)) seen.add(clientJar);
+
+        return new ArrayList<>(seen);
     }
 
     public String buildClasspathString() {
-        String sep = File.pathSeparator;
         StringBuilder sb = new StringBuilder();
         for (Path p : buildClasspathEntries()) {
-            if (sb.length() > 0) sb.append(sep);
+            if (!sb.isEmpty()) sb.append(File.pathSeparator);
             sb.append(p.toAbsolutePath());
         }
         return sb.toString();
     }
 
-    public String getAssetsDir() { return assetsPath.toAbsolutePath().toString(); }
+    public String getAssetsDir() {
+        return assetsPath.toAbsolutePath().toString();
+    }
+
+    public String getNativesDir() {
+        return instancePath.resolve("versions")
+                .resolve(vanillaVersionId).resolve("natives")
+                .toAbsolutePath().toString();
+    }
 
     public Path extractNatives() throws IOException {
-        Path nativesDir = instancePath.resolve("versions").resolve(versionInfo.id).resolve("natives");
+        Path nativesDir = instancePath.resolve("versions")
+                .resolve(vanillaVersionId).resolve("natives");
         Files.createDirectories(nativesDir);
         if (versionInfo.libraries == null) return nativesDir;
 
@@ -77,19 +132,21 @@ public class ClasspathBuilder {
         for (VersionInfo.Library lib : versionInfo.libraries) {
             if (!lib.isAllowed() || !TaskBuilder.isNativeLib(lib)) continue;
             for (Path nativeJar : findNativeJarPaths(lib, os, arch)) {
-                if (!Files.exists(nativeJar)) {
-                    System.err.println("[Natives] JAR not found: " + nativeJar);
-                    continue;
-                }
-                int count = extractFromJar(nativeJar, nativesDir);
-                if (count > 0)
-                    System.out.println("[Natives] Extracted " + count + " files from: " + nativeJar.getFileName());
-                extracted += count;
+                if (!Files.exists(nativeJar)) continue;
+                extracted += extractFromJar(nativeJar, nativesDir);
             }
         }
 
         long total = countNativeFiles(nativesDir);
-        System.out.println("[Natives] " + extracted + " extracted, " + total + " total in " + nativesDir);
+        if (total == 0 && versionInfo.inheritsFrom != null && !versionInfo.inheritsFrom.isBlank()) {
+            Path parentNativesDir = instancePath.resolve("versions").resolve(versionInfo.inheritsFrom).resolve("natives");
+            if (Files.exists(parentNativesDir) && countNativeFiles(parentNativesDir) > 0) {
+                System.out.println("[Natives] Fallback a natives de versión padre: " + versionInfo.inheritsFrom + " (0 extraídas para " + vanillaVersionId + ")");
+                return parentNativesDir;
+            }
+        }
+
+        System.out.println("[Natives] " + extracted + " extracted, " + total + " total.");
         return nativesDir;
     }
 
@@ -105,32 +162,33 @@ public class ClasspathBuilder {
             };
             for (String key : candidates) {
                 VersionInfo.Artifact a = lib.downloads.classifiers.get(key);
-                if (a != null && a.path != null && TaskBuilder.isValidArtifact(a)) {
-                    result.add(librariesPath.resolve(a.path));
-                    return result;
+                if (a != null && a.path != null) {
+                    Path jar = librariesPath.resolve(a.path);
+                    if (Files.exists(jar)) { result.add(jar); return result; }
                 }
             }
             for (var e : lib.downloads.classifiers.entrySet()) {
-                if (e.getKey().startsWith("natives-" + os) && e.getValue().path != null
-                        && TaskBuilder.isValidArtifact(e.getValue())) {
-                    result.add(librariesPath.resolve(e.getValue().path));
-                    return result;
+                if (e.getKey().startsWith("natives-" + os) && e.getValue().path != null) {
+                    Path jar = librariesPath.resolve(e.getValue().path);
+                    if (Files.exists(jar)) { result.add(jar); return result; }
                 }
             }
         }
 
         if (lib.downloads.classifiers != null) {
             for (var e : lib.downloads.classifiers.entrySet()) {
-                if (e.getKey().startsWith("natives-" + os) && e.getValue().path != null
-                        && TaskBuilder.isValidArtifact(e.getValue()))
-                    result.add(librariesPath.resolve(e.getValue().path));
+                if (e.getKey().startsWith("natives-" + os) && e.getValue().path != null) {
+                    Path jar = librariesPath.resolve(e.getValue().path);
+                    if (Files.exists(jar)) result.add(jar);
+                }
             }
             if (!result.isEmpty()) return result;
         }
 
-        if (lib.downloads.artifact != null && lib.downloads.artifact.path != null
-                && TaskBuilder.isValidArtifact(lib.downloads.artifact))
-            result.add(librariesPath.resolve(lib.downloads.artifact.path));
+        if (lib.downloads.artifact != null && lib.downloads.artifact.path != null) {
+            Path jar = librariesPath.resolve(lib.downloads.artifact.path);
+            if (Files.exists(jar)) result.add(jar);
+        }
 
         return result;
     }
@@ -144,7 +202,8 @@ public class ClasspathBuilder {
                 String name = entry.getName();
                 if (entry.isDirectory() || name.startsWith("META-INF")) continue;
                 if (!isNativeFile(name)) continue;
-                String fileName = name.contains("/") ? name.substring(name.lastIndexOf('/') + 1) : name;
+                String fileName = name.contains("/")
+                        ? name.substring(name.lastIndexOf('/') + 1) : name;
                 Path dest = destDir.resolve(fileName);
                 if (Files.exists(dest)) continue;
                 try (InputStream in = jar.getInputStream(entry)) {
@@ -157,6 +216,18 @@ public class ClasspathBuilder {
             System.err.println("[Natives] Extract failed from " + jarPath.getFileName() + ": " + e.getMessage());
         }
         return count;
+    }
+
+    private Path resolveFromMavenCoordinates(String name) {
+        String[] parts = name.split(":");
+        if (parts.length < 3) return null;
+        String groupId = parts[0].replace('.', '/');
+        String artifactId = parts[1];
+        String version = parts[2];
+        
+        String classifier = parts.length > 3 ? parts[3] : null;
+        String jarName = artifactId + "-" + version + (classifier != null ? "-" + classifier : "") + ".jar";
+        return librariesPath.resolve(groupId).resolve(artifactId).resolve(version).resolve(jarName);
     }
 
     private static boolean isNativeFile(String n) {

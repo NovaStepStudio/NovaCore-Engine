@@ -4,10 +4,12 @@ import java.util.List;
 import java.util.Map;
 
 public class VersionInfo {
+
     public String id;
     public String type;
     public String mainClass;
     public String assets;
+    public String inheritsFrom;
     public Arguments arguments;
     public String minecraftArguments;
     public Downloads downloads;
@@ -36,20 +38,18 @@ public class VersionInfo {
         public LibDownloads downloads;
         public Map<String, String> natives;
         public List<Rule> rules;
+
         public boolean isAllowed() {
             if (rules == null || rules.isEmpty()) return true;
-
             boolean result = false;
             for (Rule rule : rules) {
                 boolean ruleMatches;
                 if (rule.os == null) {
-                    
                     ruleMatches = true;
                 } else {
                     String osName = rule.os.get("name");
                     ruleMatches = osName != null && osName.equals(currentOsName());
                 }
-
                 if (ruleMatches) {
                     result = "allow".equals(rule.action);
                 }

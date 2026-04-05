@@ -20,6 +20,8 @@ dependencies {
     // Logging
     implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'org.slf4j:slf4j-simple:2.0.9'
+    // Modifiquer
+    implementation 'org.benf:cfr:0.152'
 }
 
 application {

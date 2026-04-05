@@ -29,7 +29,7 @@ public class VersionsHandler implements HttpHandler {
 
         VersionManifest manifest;
         try {
-            manifest = manifestClient.fetchRootManifest();
+            manifest = manifestClient.fetchManifest();
         } catch (Exception e) {
             HttpUtils.serverError(exchange, "Failed to fetch version manifest: " + e.getMessage());
             return;

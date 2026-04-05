@@ -3,7 +3,7 @@
 const path = require('path');
 const fs = require('fs');
 const CoreProcess = require('../CoreProcess');
-const CoreClient = require('../CoreClient');
+const { CoreClient } = require('../CoreClient');
 const {
     JAR_PATH, MC_VERSION, SHARED_DIR, INSTANCES_DIR,
     LOG_DIR, LAUNCHER_NAME, DEFAULT_AUTH,
@@ -53,10 +53,10 @@ async function main() {
     proc.on('stderr', (line) => { if (!line.includes('WARNING')) console.error('[Java]', line); });
     console.log(` PID: ${proc.pid} ✓\n`);
     
-    client = new CoreClient();
+    client = new CoreClient({ accessToken: proc.accessToken });
     await client.connect();
     
-    // ── Recursos del sistema ──────────────────────────────────────────────────
+    // ── Recursos del sistema
     console.log('Consultando recursos del sistema...');
     const resources    = await client.systemResources();
     const { recommended } = resources;
@@ -65,7 +65,7 @@ async function main() {
     console.log(`  RAM: ${fmtMb(resources.ram.totalMb)} total → MC: ${fmtMb(recommended.mcMinRamMb)}-${fmtMb(recommended.mcMaxRamMb)}`);
     console.log(`  GC recomendado: ${recommended.gcPreset}\n`);
     
-    // ── Resolver instancia ────────────────────────────────────────────────────
+    // ── Resolver instancia
     console.log('Resolviendo instancia...');
     const instanceName = `${MC_VERSION}-vanilla`;
     const instancePath = path.join(INSTANCES_DIR, instanceName);
@@ -93,12 +93,12 @@ async function main() {
     }
     console.log(`  Path: ${instance.path || instancePath}\n`);
     
-    // ── Verificar instalación ─────────────────────────────────────────────────
+    // ── Verificar instalación
     const clientJar   = path.join(instancePath, 'versions', MC_VERSION, `${MC_VERSION}.jar`);
     const isInstalled = fs.existsSync(clientJar);
     console.log(`Estado: ${isInstalled ? '✓ Instalada' : '○ Requiere instalación'}\n`);
     
-    // ── Instalar si hace falta ────────────────────────────────────────────────
+    // ── Instalar si hace falta
     if (!isInstalled) {
         console.log('══ Instalando ══════════════════════════════\n');
         
@@ -107,14 +107,12 @@ async function main() {
             console.log(`  ${d.totalTasks} archivos → C:${b.client} L:${b.libraries} A:${b.assets} N:${b.natives}\n`);
         });
         
-        client.on('runtime_download_start', (d) =>
-            console.log(`\n  [JVM] Descargando Java ${d.javaVersion} (${d.totalFiles} archivos)...`)
-    );
-    client.on('runtime_download_complete', (d) =>
-        console.log(`  [JVM] ✓ Java ${d.javaVersion} listo\n`)
-);
+        client.on('runtime_download_start',    (d) =>
+            console.log(`\n  [JVM] Descargando Java ${d.javaVersion} (${d.totalFiles} archivos)...`));
+        client.on('runtime_download_complete', (d) =>
+            console.log(`  [JVM] ✓ Java ${d.javaVersion} listo\n`));
 
-let lastPct = -1;
+        let lastPct = -1;
 const unsubProg = client.onEvent('session_progress', (d) => {
     if (d.percent === lastPct) return;
     lastPct = d.percent;
@@ -154,7 +152,7 @@ console.log(`  ✓ Instalado: ${result.completedFiles} nuevos, ${result.skippedF
 console.log(`  Descargado: ${fmt(result.downloadedBytes)}\n`);
 }
 
-// ── Lanzar ────────────────────────────────────────────────────────────────
+// ── Lanzar
 console.log('══ Lanzando ════════════════════════════════\n');
 
 const launchStart = Date.now();
@@ -211,7 +209,7 @@ const { launchId } = await client.launch({
 
 console.log(`\n  Launch ID: ${launchId}`);
 
-// ── Esperar cierre ────────────────────────────────────────────────────────
+// ── Esperar cierre
 const result   = await client.waitForGame(launchId);
 const playTime = Date.now() - launchStart;
 
@@ -223,7 +221,7 @@ console.log(result.status === 'clean'
 console.log(`  Tiempo de juego: ${(playTime / 60000).toFixed(1)} min`);
 console.log(`  Logs mostrados: ${totalLogs} líneas`);
 
-// ── Registrar tiempo de juego ─────────────────────────────────────────────
+// ── Registrar tiempo de juego
 if (instance?.id) {
     try {
         await client._post(`/instances/${instance.id}/playtime`, { durationMs: playTime });

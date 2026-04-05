@@ -10,7 +10,8 @@
     "example:install":   "node src/examples/03-install.js",
     "example:launch":    "node src/examples/04-launch-vanilla.js",
     "example:advanced":  "node src/examples/05-launch-advanced.js",
-    "example:full":      "node src/examples/06-full-launcher.js"
+    "example:full":      "node src/examples/06-full-launcher.js",
+    "example:modloader": "node src/examples/07-modloader.js"
   },
   "dependencies": {
     "ws": "^8.16.0"

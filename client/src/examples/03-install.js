@@ -2,7 +2,7 @@
 
 const path = require('path');
 const CoreProcess = require('../CoreProcess');
-const CoreClient = require('../CoreClient');
+const { CoreClient } = require('../CoreClient');
 const { JAR_PATH, MC_VERSION, SHARED_DIR, INSTANCES_DIR, LOG_DIR, LAUNCHER_NAME } = require('./config');
 
 function bar(pct, w = 28) {
@@ -85,7 +85,7 @@ async function main() {
     await proc.start();
     proc.on('stderr', (line) => { if (!line.includes('WARNING')) console.error('[Java]', line); });
     
-    const client = new CoreClient();
+    const client = new CoreClient({ accessToken: proc.accessToken });
     await client.connect();
     
     client.on('debug', (d) => {
@@ -93,21 +93,17 @@ async function main() {
             console.log(`  [core] ${d.message}`);
     });
     
-    client.on('runtime_download_start', (d) =>
-        console.log(`\n  [JVM] Descargando Java ${d.javaVersion} (${d.totalFiles} archivos)...`)
-);
-client.on('runtime_download_complete', (d) =>
-    console.log(`  [JVM] ✓ Java ${d.javaVersion} listo\n`)
-);
+    client.on('runtime_download_start',    (d) =>
+        console.log(`\n  [JVM] Descargando Java ${d.javaVersion} (${d.totalFiles} archivos)...`));
+    client.on('runtime_download_complete', (d) =>
+        console.log(`  [JVM] ✓ Java ${d.javaVersion} listo\n`));
 
-console.log('══ PRIMERA INSTALACIÓN (descarga todo) ════\n');
-const inst1 = path.join(INSTANCES_DIR, 'vanilla-test-1');
+    console.log('══ PRIMERA INSTALACIÓN (descarga todo) ════\n');
+    const inst1 = path.join(INSTANCES_DIR);
 await installVersion(client, 'Vanilla ' + MC_VERSION, inst1, SHARED_DIR, MC_VERSION, true);
 
 console.log('\n══ SEGUNDA INSTALACIÓN (reutiliza shared) ═');
 console.log('   (Libs/assets ya en shared → skip inmediato)\n');
-const inst2 = path.join(INSTANCES_DIR, 'vanilla-test-2');
-await installVersion(client, 'Vanilla ' + MC_VERSION + ' (copia)', inst2, SHARED_DIR, MC_VERSION, false);
 
 console.log('\n══ Resumen de sesiones ════════════════════\n');
 const sessions = await client.allSessions();

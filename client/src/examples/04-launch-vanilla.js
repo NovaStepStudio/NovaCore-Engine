@@ -2,13 +2,13 @@
 
 const path = require('path');
 const CoreProcess = require('../CoreProcess');
-const CoreClient = require('../CoreClient');
+const { CoreClient } = require('../CoreClient');
 const {
     JAR_PATH, MC_VERSION, SHARED_DIR, INSTANCES_DIR,
-    LOG_DIR, LAUNCHER_NAME, DEFAULT_AUTH, DEFAULT_WINDOW,
+    JAVA_PATH, LAUNCHER_NAME, DEFAULT_AUTH, DEFAULT_WINDOW,
 } = require('./config');
 
-const INSTANCE_PATH = path.join(INSTANCES_DIR, 'vanilla-test-1');
+const INSTANCE_PATH = path.join(INSTANCES_DIR);
 
 async function main() {
     console.log('╔══════════════════════════════════════════╗');
@@ -19,7 +19,6 @@ async function main() {
     const proc = new CoreProcess({
         jarPath:      JAR_PATH,
         instancesDir: INSTANCES_DIR,
-        logDir:       LOG_DIR,
         launcherName: LAUNCHER_NAME,
         verbose:      false,
     });
@@ -27,7 +26,7 @@ async function main() {
     await proc.start();
     proc.on('stderr', (line) => { if (!line.includes('WARNING')) console.error('[Java]', line); });
     
-    const client = new CoreClient();
+    const client = new CoreClient({ accessToken: proc.accessToken });
     await client.connect();
     
     client.on('debug', (d) => {
@@ -51,11 +50,10 @@ async function main() {
         console.log('\n╔══════════════════════════════════════════╗');
         console.log('║           Minecraft en ejecución!        ║');
         console.log('╚══════════════════════════════════════════╝');
-        console.log(`  Versión:  ${d.version}`);
-        console.log(`  Usuario:  ${d.username}`);
-        console.log(`  GameDir:  ${d.gameDir}`);
-        console.log(`  Java:     ${d.javaExec}`);
-        console.log(`  Offline:  ${d.offline ? '✓' : '✗'}`);
+        console.log(`  PID:  ${d.pid}`);
+        console.log(`  LaunchID:  ${d.launchId}`);
+        // console.log('Informacion Devuelta Del Core (Debug):');
+        // console.log(JSON.stringify(d, null, 2));
         console.log('\n─── Game Logs ──────────────────────────────');
     });
     
@@ -75,14 +73,18 @@ async function main() {
         instancePath: INSTANCE_PATH,
         sharedPath:   SHARED_DIR,
         auth:         DEFAULT_AUTH,
-        jvm:          { minMemoryMb: 0, maxMemoryMb: 0 },
+        javaPath:     JAVA_PATH, // null = auto-detect from instance runtime
+        // jvm:      { minMemoryMb: 0, maxMemoryMb: 0 },
         window:       DEFAULT_WINDOW,
-        gcPreset:     'auto',
-        hardwareAcceleration: false,
         launcher: {
             name:    LAUNCHER_NAME,
             version: '1.0.0',
         },
+        authlibInjector:{
+            enabled: true,
+            jarPath: path.join(__dirname,'../../../releases/authlib-injector-1.2.7.jar'),
+            serverUrl: "https://auth.stepnicka012.workers.dev/",
+        }
     });
     
     console.log(`  Launch ID: ${launchId}\n`);
