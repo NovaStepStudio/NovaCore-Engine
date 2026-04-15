@@ -1,6 +1,5 @@
 <div align="center">
-  <img src="Docs/NovaCore-Engine.png" alt="NovaCore-Engine" width="500"/>
-  <h1>NovaCore-Engine</h1>
+  <img src="docs/NovaCore-Engine.png" alt="NovaCore-Engine" width="500"/>
   <p><strong>El motor de backend definitivo para launchers de Minecraft Java</strong></p>
   <p>
     <img src="https://img.shields.io/badge/Java-21+-orange?style=flat-square"/>
