@@ -1,43 +1,46 @@
 package dev.novastep.core.modloader.provider;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import dev.novastep.core.log.CoreLogger;
 import dev.novastep.core.modloader.model.LoaderVersion;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Type;
+import java.util.*;
 
 public final class ForgeProvider extends AbstractForgeProvider {
 
-    private static final String MAVEN_META = "https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml";
+    private static final String LOG        = "ForgeProvider";
+    private static final String JSON_API   = "https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json";
     private static final String MAVEN_BASE = "https://maven.minecraftforge.net/";
 
-    @Override
-    public String name() {
-        return "forge";
-    }
+    private static final Gson GSON      = new Gson();
+    private static final Type META_TYPE = new TypeToken<Map<String, List<String>>>() {}.getType();
+
+    @Override public String name() { return "forge"; }
 
     @Override
     protected String installerUrl(String versionId) {
-        return MAVEN_BASE + "net/minecraftforge/forge/" + versionId + "/forge-" + versionId + "-installer.jar";
+        return MAVEN_BASE + "net/minecraftforge/forge/" + versionId
+                + "/forge-" + versionId + "-installer.jar";
     }
 
-    @Override
-    protected String mavenRepoBase() {
-        return MAVEN_BASE;
-    }
+    @Override protected String mavenRepoBase() { return MAVEN_BASE; }
 
     @Override
     protected List<String> listAllVersions() throws IOException, InterruptedException {
-        return parseMavenMetadataVersions(get(MAVEN_META));
+        Map<String, List<String>> meta = fetchMeta();
+        List<String> all = new ArrayList<>();
+        for (List<String> v : meta.values()) all.addAll(v);
+        return all;
     }
 
     @Override
     protected List<String> filterForMinecraft(List<String> all, String mcVersion) {
         String prefix = mcVersion + "-";
         List<String> result = new ArrayList<>();
-        for (String v : all) {
-            if (v.startsWith(prefix)) result.add(v);
-        }
+        for (String v : all) { if (v.startsWith(prefix)) result.add(v); }
         return result;
     }
 
@@ -48,15 +51,34 @@ public final class ForgeProvider extends AbstractForgeProvider {
     }
 
     @Override
-    public List<LoaderVersion> getVersions(String mcVersion) throws IOException, InterruptedException {
-        List<String> all      = listAllVersions();
-        List<String> filtered = filterForMinecraft(all, mcVersion);
-        List<LoaderVersion> result = new ArrayList<>();
-        for (String v : filtered) {
-            String loaderOnly = v.startsWith(mcVersion + "-")
-                    ? v.substring(mcVersion.length() + 1) : v;
+    public List<LoaderVersion> getVersions(String mcVersion)
+            throws IOException, InterruptedException {
+
+        Map<String, List<String>> meta = fetchMeta();
+        List<String> raw = meta.get(mcVersion);
+
+        if (raw == null || raw.isEmpty()) {
+            CoreLogger.get().warn(LOG, "No Forge versions found for MC " + mcVersion);
+            return Collections.emptyList();
+        }
+
+        List<String> ordered = new ArrayList<>(raw);
+        Collections.reverse(ordered);
+
+        List<LoaderVersion> result = new ArrayList<>(ordered.size());
+        for (String fullId : ordered) {
+            String loaderOnly = fullId.startsWith(mcVersion + "-")
+                    ? fullId.substring(mcVersion.length() + 1) : fullId;
             result.add(new LoaderVersion(loaderOnly, mcVersion, true));
         }
         return result;
+    }
+
+    private Map<String, List<String>> fetchMeta() throws IOException, InterruptedException {
+        String json = get(JSON_API);
+        Map<String, List<String>> meta = GSON.fromJson(json, META_TYPE);
+        if (meta == null || meta.isEmpty())
+            throw new IOException("Forge metadata JSON empty or unparseable: " + JSON_API);
+        return meta;
     }
 }

@@ -89,21 +89,64 @@ public final class MinecraftVerifier {
             }
         }
 
+        // ── Java resolution (order: custom path → Mojang runtime → system java) ──
         boolean javaFound = false;
+
+        // 1. Explicit custom path provided by user
         if (req.javaPath != null && !req.javaPath.isBlank() && !req.javaPath.equals("java")) {
-            javaFound = Files.isRegularFile(Path.of(req.javaPath));
+            javaFound = Files.isRegularFile(Path.of(req.javaPath))
+                    && Files.isExecutable(Path.of(req.javaPath));
+            if (!javaFound) {
+                CoreLogger.get().warn(LOG,
+                        "Custom javaPath does not exist or is not executable: " + req.javaPath);
+            }
         }
+
+        // 2. Mojang downloaded runtime (optional — not required)
         if (!javaFound) {
             Path sharedBase = (req.sharedPath != null && !req.sharedPath.isBlank())
                     ? Path.of(req.sharedPath).toAbsolutePath() : null;
             String found = RuntimeDownloader.findExistingRuntime(instancePath, sharedBase);
-            javaFound = (found != null && Files.isRegularFile(Path.of(found)));
+            if (found != null && Files.isRegularFile(Path.of(found))) {
+                javaFound = true;
+                CoreLogger.get().debug(LOG, "Java from Mojang runtime: " + found);
+            }
         }
+
+        // 3. System Java (java.home → PATH "java") — always valid as last resort
         if (!javaFound) {
+            String javaHome = System.getProperty("java.home");
+            if (javaHome != null && !javaHome.isBlank()) {
+                String exec = System.getProperty("os.name", "").toLowerCase().contains("win")
+                        ? "java.exe" : "java";
+                Path systemJava = Path.of(javaHome, "bin", exec);
+                if (Files.isRegularFile(systemJava) && Files.isExecutable(systemJava)) {
+                    javaFound = true;
+                    CoreLogger.get().debug(LOG, "Java from java.home: " + systemJava);
+                }
+            }
+        }
+
+        // 4. Last resort: probe "java" on PATH
+        if (!javaFound) {
+            try {
+                Process p = new ProcessBuilder("java", "-version")
+                        .redirectErrorStream(true).start();
+                p.waitFor();
+                javaFound = (p.exitValue() == 0);
+                if (javaFound)
+                    CoreLogger.get().debug(LOG, "Java found via PATH probe");
+            } catch (Exception ignored) {}
+        }
+
+        if (!javaFound) {
+            CoreLogger.get().warn(LOG,
+                    "No Java executable found via any method. "
+                    + "Provide javaPath, download JVM via install, or ensure 'java' is on PATH.");
             Path searchedDir = (req.sharedPath != null && !req.sharedPath.isBlank())
                     ? Path.of(req.sharedPath).toAbsolutePath().resolve("runtime")
                     : instancePath.resolve("runtime");
-            missing.add(new MissingComponent("runtime", "java executable", searchedDir));
+            missing.add(new MissingComponent("runtime", "java executable not found via any method", searchedDir));
         }
 
         if (!missing.isEmpty()) {

@@ -202,7 +202,7 @@ public class RuntimeDownloader {
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .timeout(Duration.ofSeconds(TIMEOUT_SEC))
-                .header("User-Agent", "novacore-engine/1.0")
+                .header("User-Agent", "novacore-engine/" + dev.novastep.core.CoreVersion.get() + " (NovaStepStudios)")
                 .GET().build();
         HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
         if (res.statusCode() != 200)

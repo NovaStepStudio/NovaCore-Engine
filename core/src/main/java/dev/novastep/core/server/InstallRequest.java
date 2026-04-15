@@ -15,7 +15,13 @@ public class InstallRequest {
     public Boolean debug;
     public String  modloader;
     public String  modloaderVersion;
+    public LauncherBranding launcher;
     
+    public static class LauncherBranding {
+        public String name;
+        public String version;
+    }
+
     public static class DownloadOptions {
         public Boolean client;
         public Boolean libraries;

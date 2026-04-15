@@ -24,7 +24,8 @@ import java.util.concurrent.CompletableFuture;
 public final class ModLoaderOrchestrator {
 
     private static final String LOG        = "ModLoaderOrchestrator";
-    private static final String STATE_FILE = "modloader.json";
+    private static final String STATE_DIR  = ".novacore";
+    private static final String STATE_FILE = "loader-state.json";
     private static final Gson   GSON       = new Gson();
 
     private final DownloadManager  downloadManager;
@@ -105,7 +106,7 @@ public final class ModLoaderOrchestrator {
     }
 
     public Optional<InstalledLoader> loadState(Path instancePath) {
-        Path stateFile = instancePath.resolve(STATE_FILE);
+        Path stateFile = instancePath.resolve(STATE_DIR).resolve(STATE_FILE);
         if (!Files.exists(stateFile)) return Optional.empty();
         try {
             String json = Files.readString(stateFile, StandardCharsets.UTF_8);
@@ -117,7 +118,7 @@ public final class ModLoaderOrchestrator {
     }
 
     public void removeState(Path instancePath) throws IOException {
-        Files.deleteIfExists(instancePath.resolve(STATE_FILE));
+        Files.deleteIfExists(instancePath.resolve(STATE_DIR).resolve(STATE_FILE));
     }
 
     private String resolveVersion(
@@ -194,7 +195,9 @@ public final class ModLoaderOrchestrator {
     }
 
     private void persistState(Path instancePath, InstalledLoader state) throws IOException {
-        Path stateFile = instancePath.resolve(STATE_FILE);
+        Path stateDir  = instancePath.resolve(STATE_DIR);
+        Path stateFile = stateDir.resolve(STATE_FILE);
+        Files.createDirectories(stateDir);
         Files.writeString(stateFile, GSON.toJson(state), StandardCharsets.UTF_8);
         CoreLogger.get().debug(LOG, "Modloader state saved: " + stateFile);
     }

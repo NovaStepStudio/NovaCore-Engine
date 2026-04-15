@@ -7,8 +7,7 @@ import dev.novastep.core.server.HttpUtils;
 import dev.novastep.core.server.LaunchRequest;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 public class LaunchHandler implements HttpHandler {
 
@@ -31,14 +30,22 @@ public class LaunchHandler implements HttpHandler {
         }
 
         if ("POST".equalsIgnoreCase(method) && path.startsWith("/launch/kill/")) {
-            String launchId = path.substring("/launch/kill/".length());
-            handleKill(exchange, launchId);
+            handleKill(exchange, path.substring("/launch/kill/".length()));
             return;
         }
 
         if ("GET".equalsIgnoreCase(method) && path.startsWith("/launch/status/")) {
-            String launchId = path.substring("/launch/status/".length());
-            handleStatus(exchange, launchId);
+            handleStatus(exchange, path.substring("/launch/status/".length()));
+            return;
+        }
+
+        if ("GET".equalsIgnoreCase(method) && path.equals("/launch/instances")) {
+            handleListInstances(exchange);
+            return;
+        }
+
+        if ("GET".equalsIgnoreCase(method) && path.startsWith("/launch/instances/")) {
+            handleGetInstance(exchange, path.substring("/launch/instances/".length()));
             return;
         }
 
@@ -60,44 +67,36 @@ public class LaunchHandler implements HttpHandler {
             return;
         }
 
-        if (req == null) {
-            HttpUtils.badRequest(exchange, "Body nulo");
-            return;
-        }
+        if (req == null) { HttpUtils.badRequest(exchange, "Body nulo"); return; }
 
         String validationError = req.validate();
-        if (validationError != null) {
-            HttpUtils.badRequest(exchange, validationError);
-            return;
-        }
+        if (validationError != null) { HttpUtils.badRequest(exchange, validationError); return; }
 
         String launchId = launcher.launch(req);
 
         Map<String, Object> response = new LinkedHashMap<>();
-        response.put("launchId", launchId);
-        response.put("status", "launching");
-        response.put("version", req.version);
-        response.put("username", req.resolvedUsername());
-        response.put("instancePath", req.resolvedInstancePath());
+        response.put("launchId",       launchId);
+        response.put("status",         "launching");
+        response.put("version",        req.version);
+        response.put("username",       req.resolvedUsername());
+        response.put("instancePath",   req.resolvedInstancePath());
+        response.put("runningInstances", launcher.getRunningCount());
         response.put("authlibInjector", req.isAuthlibEnabled()
-            ? Map.of("enabled", true, "server", req.authlibInjector.serverUrl)
-            : Map.of("enabled", false)
-        );
-        response.put("message", "Minecraft launching. Conectate al WS para ver los logs en tiempo real.");
-        response.put("kill", "/launch/kill/" + launchId);
+                ? Map.of("enabled", true, "server", req.authlibInjector.serverUrl)
+                : Map.of("enabled", false));
+        response.put("message",  "Minecraft launching. Conectate al WS para logs en tiempo real.");
+        response.put("kill",     "/launch/kill/"       + launchId);
+        response.put("status",   "/launch/status/"     + launchId);
+        response.put("details",  "/launch/instances/"  + launchId);
 
         HttpUtils.accepted(exchange, response);
     }
 
     private void handleKill(HttpExchange exchange, String launchId) throws IOException {
         if (!HttpUtils.requireMethod(exchange, "POST")) return;
-
         boolean killed = launcher.kill(launchId);
         if (killed) {
-            HttpUtils.ok(exchange, Map.of(
-                "launchId", launchId,
-                "status", "killed"
-            ));
+            HttpUtils.ok(exchange, Map.of("launchId", launchId, "status", "killed"));
         } else {
             HttpUtils.notFound(exchange, "Proceso no encontrado o ya terminado: " + launchId);
         }
@@ -105,12 +104,32 @@ public class LaunchHandler implements HttpHandler {
 
     private void handleStatus(HttpExchange exchange, String launchId) throws IOException {
         if (!HttpUtils.requireMethod(exchange, "GET")) return;
-
         boolean running = launcher.isRunning(launchId);
+        Map<String, Object> data = launcher.getInstanceData(launchId);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("launchId", launchId);
+        resp.put("running",  running);
+        resp.put("status",   running ? "running" : "stopped");
+        if (data != null) resp.put("details", data);
+        HttpUtils.ok(exchange, resp);
+    }
+
+    private void handleListInstances(HttpExchange exchange) throws IOException {
+        if (!HttpUtils.requireMethod(exchange, "GET")) return;
+        List<Map<String, Object>> instances = launcher.getAllInstances();
         HttpUtils.ok(exchange, Map.of(
-            "launchId", launchId,
-            "running", running,
-            "status", running ? "running" : "stopped"
-        ));
+                "count",     instances.size(),
+                "running",   launcher.getRunningCount(),
+                "instances", instances));
+    }
+
+    private void handleGetInstance(HttpExchange exchange, String launchId) throws IOException {
+        if (!HttpUtils.requireMethod(exchange, "GET")) return;
+        Map<String, Object> data = launcher.getInstanceData(launchId);
+        if (data == null) {
+            HttpUtils.notFound(exchange, "Instancia no encontrada: " + launchId);
+            return;
+        }
+        HttpUtils.ok(exchange, data);
     }
 }

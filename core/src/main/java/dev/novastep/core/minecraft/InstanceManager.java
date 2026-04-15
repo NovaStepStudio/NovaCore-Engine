@@ -22,16 +22,16 @@ public class InstanceManager {
     }
 
     public static class InstanceMeta {
-        public String  id;
-        public String  name;
-        public String  mcVersion;
-        public String  modLoader;
-        public String  modLoaderVersion;
-        public String  javaPath;
+        public String id;
+        public String name;
+        public String mcVersion;
+        public String modLoader;
+        public String modLoaderVersion;
+        public String javaPath;
         public int minMemoryMb;
         public int maxMemoryMb;
         public boolean hardwareAccel;
-        public String  gcPreset;
+        public String gcPreset;
         public List<String> jvmArgs;
         public List<String> extraGameArgs;
         public Map<String, String> jvmProperties;
@@ -80,19 +80,18 @@ public class InstanceManager {
         Files.createDirectories(instanceDir);
 
         for (String subdir : List.of(
-            "versions",
-            "libraries",
-            "assets/indexes",
-            "assets/objects",
-            "game",
-            "game/mods",
-            "game/config",
-            "game/saves",
-            "game/resourcepacks",
-            "game/shaderpacks",
-            "runtime",
-            "logs"
-        )) {
+                "versions",
+                "libraries",
+                "assets/indexes",
+                "assets/objects",
+                "game",
+                "game/mods",
+                "game/config",
+                "game/saves",
+                "game/resourcepacks",
+                "game/shaderpacks",
+                "runtime",
+                "logs")) {
             Files.createDirectories(instanceDir.resolve(subdir));
         }
 
@@ -102,13 +101,16 @@ public class InstanceManager {
     }
 
     public List<Map<String, Object>> listAll() throws IOException {
-        if (!Files.isDirectory(instancesRoot)) return List.of();
+        if (!Files.isDirectory(instancesRoot))
+            return List.of();
         List<Map<String, Object>> instances = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(instancesRoot)) {
             for (Path dir : stream) {
-                if (!Files.isDirectory(dir)) continue;
+                if (!Files.isDirectory(dir))
+                    continue;
                 Path metaFile = dir.resolve(INSTANCE_METADATA_FILE);
-                if (!Files.exists(metaFile)) continue;
+                if (!Files.exists(metaFile))
+                    continue;
                 try {
                     InstanceMeta meta = readMetadata(dir);
                     instances.add(metaToMap(meta, dir));
@@ -123,36 +125,57 @@ public class InstanceManager {
 
     public Map<String, Object> get(String idOrName) throws IOException {
         Path dir = findInstanceDir(idOrName);
-        if (dir == null) return null;
+        if (dir == null)
+            return null;
         return metaToMap(readMetadata(dir), dir);
     }
 
     public InstanceMeta update(String idOrName, InstanceMeta updates) throws IOException {
         Path dir = findInstanceDir(idOrName);
-        if (dir == null) throw new IllegalArgumentException("Instance not found: " + idOrName);
+        if (dir == null)
+            throw new IllegalArgumentException("Instance not found: " + idOrName);
         InstanceMeta existing = readMetadata(dir);
 
-        if (updates.name               != null)  existing.name               = updates.name;
-        if (updates.mcVersion          != null)  existing.mcVersion          = updates.mcVersion;
-        if (updates.modLoader          != null)  existing.modLoader          = updates.modLoader;
-        if (updates.modLoaderVersion   != null)  existing.modLoaderVersion   = updates.modLoaderVersion;
-        if (updates.javaPath           != null)  existing.javaPath           = updates.javaPath;
-        if (updates.gcPreset           != null)  existing.gcPreset           = updates.gcPreset;
-        if (updates.jvmArgs            != null)  existing.jvmArgs            = updates.jvmArgs;
-        if (updates.extraGameArgs      != null)  existing.extraGameArgs      = updates.extraGameArgs;
-        if (updates.jvmProperties      != null)  existing.jvmProperties      = updates.jvmProperties;
-        if (updates.launcherName       != null)  existing.launcherName       = updates.launcherName;
-        if (updates.launcherVersion    != null)  existing.launcherVersion    = updates.launcherVersion;
-        if (updates.serverHost         != null)  existing.serverHost         = updates.serverHost;
-        if (updates.serverPort         != null)  existing.serverPort         = updates.serverPort;
-        if (updates.customGameDir      != null)  existing.customGameDir      = updates.customGameDir;
-        if (updates.disableMultiplayer != null)  existing.disableMultiplayer = updates.disableMultiplayer;
-        if (updates.disableChat        != null)  existing.disableChat        = updates.disableChat;
-        if (updates.iconPath           != null)  existing.iconPath           = updates.iconPath;
-        if (updates.minMemoryMb         > 0)     existing.minMemoryMb        = updates.minMemoryMb;
-        if (updates.maxMemoryMb         > 0)     existing.maxMemoryMb        = updates.maxMemoryMb;
+        if (updates.name != null)
+            existing.name = updates.name;
+        if (updates.mcVersion != null)
+            existing.mcVersion = updates.mcVersion;
+        if (updates.modLoader != null)
+            existing.modLoader = updates.modLoader;
+        if (updates.modLoaderVersion != null)
+            existing.modLoaderVersion = updates.modLoaderVersion;
+        if (updates.javaPath != null)
+            existing.javaPath = updates.javaPath;
+        if (updates.gcPreset != null)
+            existing.gcPreset = updates.gcPreset;
+        if (updates.jvmArgs != null)
+            existing.jvmArgs = updates.jvmArgs;
+        if (updates.extraGameArgs != null)
+            existing.extraGameArgs = updates.extraGameArgs;
+        if (updates.jvmProperties != null)
+            existing.jvmProperties = updates.jvmProperties;
+        if (updates.launcherName != null)
+            existing.launcherName = updates.launcherName;
+        if (updates.launcherVersion != null)
+            existing.launcherVersion = updates.launcherVersion;
+        if (updates.serverHost != null)
+            existing.serverHost = updates.serverHost;
+        if (updates.serverPort != null)
+            existing.serverPort = updates.serverPort;
+        if (updates.customGameDir != null)
+            existing.customGameDir = updates.customGameDir;
+        if (updates.disableMultiplayer != null)
+            existing.disableMultiplayer = updates.disableMultiplayer;
+        if (updates.disableChat != null)
+            existing.disableChat = updates.disableChat;
+        if (updates.iconPath != null)
+            existing.iconPath = updates.iconPath;
+        if (updates.minMemoryMb > 0)
+            existing.minMemoryMb = updates.minMemoryMb;
+        if (updates.maxMemoryMb > 0)
+            existing.maxMemoryMb = updates.maxMemoryMb;
         existing.hardwareAccel = updates.hardwareAccel;
-        existing.updatedAt     = Instant.now().toString();
+        existing.updatedAt = Instant.now().toString();
 
         writeMetadata(dir, existing);
         CoreLogger.get().info(LOG, "Updated instance: " + idOrName);
@@ -161,7 +184,8 @@ public class InstanceManager {
 
     public boolean delete(String idOrName) throws IOException {
         Path dir = findInstanceDir(idOrName);
-        if (dir == null) return false;
+        if (dir == null)
+            return false;
         deleteRecursive(dir);
         CoreLogger.get().info(LOG, "Deleted instance: " + idOrName);
         return true;
@@ -169,37 +193,45 @@ public class InstanceManager {
 
     public void recordPlaySession(String idOrName, long durationMs) throws IOException {
         Path dir = findInstanceDir(idOrName);
-        if (dir == null) return;
+        if (dir == null)
+            return;
         InstanceMeta meta = readMetadata(dir);
-        meta.lastPlayedAt    = Instant.now().toString();
+        meta.lastPlayedAt = Instant.now().toString();
         meta.totalPlayTimeMs += durationMs;
-        meta.updatedAt       = meta.lastPlayedAt;
+        meta.updatedAt = meta.lastPlayedAt;
         writeMetadata(dir, meta);
     }
 
     public String getInstancePath(String idOrName) throws IOException {
         Path dir = findInstanceDir(idOrName);
-        if (dir == null) throw new IllegalArgumentException("Instance not found: " + idOrName);
+        if (dir == null)
+            throw new IllegalArgumentException("Instance not found: " + idOrName);
         return dir.toAbsolutePath().toString();
     }
 
     public InstanceMeta getMetadata(String idOrName) throws IOException {
         Path dir = findInstanceDir(idOrName);
-        if (dir == null) return null;
+        if (dir == null)
+            return null;
         return readMetadata(dir);
     }
 
     private Path findInstanceDir(String idOrName) throws IOException {
-        if (!Files.isDirectory(instancesRoot)) return null;
+        if (!Files.isDirectory(instancesRoot))
+            return null;
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(instancesRoot)) {
             for (Path dir : stream) {
-                if (!Files.isDirectory(dir)) continue;
+                if (!Files.isDirectory(dir))
+                    continue;
                 Path metaFile = dir.resolve(INSTANCE_METADATA_FILE);
-                if (!Files.exists(metaFile)) continue;
+                if (!Files.exists(metaFile))
+                    continue;
                 try {
                     InstanceMeta meta = readMetadata(dir);
-                    if (idOrName.equals(meta.id) || idOrName.equals(meta.name)) return dir;
-                } catch (Exception ignored) {}
+                    if (idOrName.equals(meta.id) || idOrName.equals(meta.name))
+                        return dir;
+                } catch (Exception ignored) {
+                }
             }
         }
         return null;
@@ -213,30 +245,30 @@ public class InstanceManager {
         String json = Files.readString(dir.resolve(INSTANCE_METADATA_FILE));
         return GSON.fromJson(json, InstanceMeta.class);
     }
-    
+
     private Map<String, Object> metaToMap(InstanceMeta meta, Path dir) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("id",                meta.id);
-        m.put("name",              meta.name);
-        m.put("mcVersion",         meta.mcVersion);
-        m.put("modLoader",         meta.modLoader);
-        m.put("modLoaderVersion",  meta.modLoaderVersion);
-        m.put("minMemoryMb",       meta.minMemoryMb);
-        m.put("maxMemoryMb",       meta.maxMemoryMb);
-        m.put("hardwareAccel",     meta.hardwareAccel);
-        m.put("gcPreset",          meta.gcPreset);
-        m.put("launcherName",      meta.launcherName);
-        m.put("launcherVersion",   meta.launcherVersion);
-        m.put("serverHost",        meta.serverHost);
-        m.put("serverPort",        meta.serverPort);
-        m.put("jvmArgs",           meta.jvmArgs);
-        m.put("extraGameArgs",     meta.extraGameArgs);
-        m.put("createdAt",         meta.createdAt);
-        m.put("lastPlayedAt",      meta.lastPlayedAt);
-        m.put("totalPlayHours",    String.format("%.1f", meta.totalPlayTimeMs / 3600000.0));
-        m.put("path",              dir.toAbsolutePath().toString());
+        m.put("id", meta.id);
+        m.put("name", meta.name);
+        m.put("mcVersion", meta.mcVersion);
+        m.put("modLoader", meta.modLoader);
+        m.put("modLoaderVersion", meta.modLoaderVersion);
+        m.put("minMemoryMb", meta.minMemoryMb);
+        m.put("maxMemoryMb", meta.maxMemoryMb);
+        m.put("hardwareAccel", meta.hardwareAccel);
+        m.put("gcPreset", meta.gcPreset);
+        m.put("launcherName", meta.launcherName);
+        m.put("launcherVersion", meta.launcherVersion);
+        m.put("serverHost", meta.serverHost);
+        m.put("serverPort", meta.serverPort);
+        m.put("jvmArgs", meta.jvmArgs);
+        m.put("extraGameArgs", meta.extraGameArgs);
+        m.put("createdAt", meta.createdAt);
+        m.put("lastPlayedAt", meta.lastPlayedAt);
+        m.put("totalPlayHours", String.format("%.1f", meta.totalPlayTimeMs / 3600000.0));
+        m.put("path", dir.toAbsolutePath().toString());
         Path clientJar = dir.resolve("versions").resolve(meta.mcVersion).resolve(meta.mcVersion + ".jar");
-        m.put("installed",         Files.exists(clientJar));
+        m.put("installed", Files.exists(clientJar));
         return m;
     }
 
@@ -247,7 +279,8 @@ public class InstanceManager {
     private static void deleteRecursive(Path path) throws IOException {
         if (Files.isDirectory(path)) {
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
-                for (Path entry : stream) deleteRecursive(entry);
+                for (Path entry : stream)
+                    deleteRecursive(entry);
             }
         }
         Files.delete(path);

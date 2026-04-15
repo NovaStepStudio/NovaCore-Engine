@@ -254,7 +254,7 @@ public class TaskBuilder {
     public static boolean isValidArtifact(VersionInfo.Artifact a) {
         if (a == null) return false;
         if (a.url == null || a.url.isBlank()) return false;
-        return a.size >= 100;  
+        return a.size != 0;
     }
 
     private static boolean archMatches(String name, String arch) {

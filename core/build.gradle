@@ -3,24 +3,20 @@ plugins {
     id 'application'
 }
 
-group   = 'dev.novastep'
-version = '1.0.0'
-sourceCompatibility = JavaVersion.VERSION_21
-targetCompatibility = JavaVersion.VERSION_21
+group = 'dev.novastep'
+version = file('version.txt').text.trim()
+sourceCompatibility = JavaVersion.VERSION_25
+targetCompatibility = JavaVersion.VERSION_25
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    // JSON
     implementation 'com.google.code.gson:gson:2.10.1'
-    // WebSocket server
     implementation 'org.java-websocket:Java-WebSocket:1.5.4'
-    // Logging
     implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'org.slf4j:slf4j-simple:2.0.9'
-    // Modifiquer
     implementation 'org.benf:cfr:0.152'
 }
 

@@ -18,12 +18,17 @@ public class EventBroadcaster extends WebSocketServer {
     private static final String LOG  = "EventBroadcaster";
 
     private final String accessToken;
+    private volatile dev.novastep.core.downloader.DownloadManager downloadManager = null;
 
     public EventBroadcaster(int port, String accessToken) {
         super(new InetSocketAddress("localhost", port));
         this.accessToken = accessToken;
         setReuseAddr(true);
         setConnectionLostTimeout(60);
+    }
+
+    public void setDownloadManager(dev.novastep.core.downloader.DownloadManager dm) {
+        this.downloadManager = dm;
     }
 
     @Override
@@ -46,7 +51,17 @@ public class EventBroadcaster extends WebSocketServer {
         }
 
         CoreLogger.get().info(LOG, "WS cliente autenticado: " + conn.getRemoteSocketAddress());
-        sendTo(conn, "connected", map("message", "novacore-engine ready", "version", "1.0.0"));
+        sendTo(conn, "connected", map(
+                "message", "novacore-engine ready",
+                "version", dev.novastep.core.CoreVersion.get()));
+
+        if (downloadManager != null) {
+            java.util.List<java.util.Map<String, Object>> snapshots = downloadManager.getRecoverySnapshots();
+            if (!snapshots.isEmpty()) {
+                emitRecoveryState(conn, snapshots);
+                CoreLogger.get().info(LOG, "Recovery state enviado: " + snapshots.size() + " sesiones activas");
+            }
+        }
     }
 
     @Override
@@ -95,19 +110,19 @@ public class EventBroadcaster extends WebSocketServer {
     public void emitSessionProgress(String sessionId, int completed, int skipped, int total, int percent,
                                     long downloadedBytes, long totalBytes) {
         emit("session_progress", map(
-            "session", sessionId, "completedFiles", completed, "skippedFiles", skipped,
-            "totalFiles", total, "percent", percent,
+            "sessionId", sessionId, "completedFiles", completed, "skippedFiles", skipped,
+            "totalFiles", total, "overallPercent", percent,
             "downloadedBytes", downloadedBytes, "totalBytes", totalBytes));
     }
 
     public void emitSessionCompleted(String sessionId, int totalFiles, long totalBytes) {
         CoreLogger.get().info(LOG, "Session completed: " + sessionId + " files=" + totalFiles);
-        emit("session_completed", map("session", sessionId, "totalFiles", totalFiles, "totalBytes", totalBytes));
+        emit("session_completed", map("sessionId", sessionId, "totalFiles", totalFiles, "totalBytes", totalBytes));
     }
 
     public void emitSessionFailed(String sessionId, String reason) {
         CoreLogger.get().error(LOG, "Session failed: " + sessionId + " reason=" + reason);
-        emit("session_failed", map("session", sessionId, "reason", reason));
+        emit("session_failed", map("sessionId", sessionId, "reason", reason));
     }
 
     public void emitSha1Check(String sessionId, String filename, boolean passed, String expected, String computed) {
@@ -125,6 +140,41 @@ public class EventBroadcaster extends WebSocketServer {
     public void emitDebug(String sessionId, String message) {
         CoreLogger.get().debug(LOG, "[" + sessionId + "] " + message);
         emit("debug", map("sessionId", sessionId, "message", message));
+    }
+
+    public void emitGameLogWarn(String launchId, String line, String logger) {
+        emit("game_log_warn", map("launchId", launchId, "line", line, "logger", logger));
+    }
+
+    public void emitGameLogError(String launchId, String line, String logger) {
+        emit("game_log_error", map("launchId", launchId, "line", line, "logger", logger));
+    }
+
+    public void emitGameLogFatal(String launchId, String line, String logger) {
+        emit("game_log_fatal", map("launchId", launchId, "line", line, "logger", logger));
+    }
+
+    public void emitGameCrash(String launchId, int exitCode, String reason) {
+        CoreLogger.get().error(LOG, "Game crash [" + launchId + "] exitCode=" + exitCode + " reason=" + reason);
+        emit("game_crash", map("launchId", launchId, "exitCode", exitCode, "reason", reason));
+    }
+
+    public void emitInstanceStarted(String launchId, String version, long pid) {
+        emit("instance_started", map("launchId", launchId, "version", version, "pid", pid));
+    }
+
+    public void emitInstanceStopped(String launchId, int exitCode, boolean normal, long durationMs) {
+        emit("instance_stopped", map(
+            "launchId", launchId, "exitCode", exitCode,
+            "normal", normal, "durationMs", durationMs));
+    }
+
+    public void emitRecoveryState(org.java_websocket.WebSocket conn,
+                                   java.util.List<java.util.Map<String, Object>> snapshots) {
+        Map<String, Object> envelope = new HashMap<>();
+        envelope.put("event", "recovery_state");
+        envelope.put("data",  Map.of("snapshots", snapshots, "count", snapshots.size()));
+        conn.send(GSON.toJson(envelope));
     }
 
     private void sendTo(WebSocket conn, String eventType, Object payload) {

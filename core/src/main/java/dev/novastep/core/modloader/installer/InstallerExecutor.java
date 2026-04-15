@@ -17,8 +17,8 @@ import java.util.zip.ZipEntry;
 
 public final class InstallerExecutor {
 
-    private static final String LOG  = "InstallerExecutor";
-    private static final Gson   GSON = new Gson();
+    private static final String LOG = "InstallerExecutor";
+    private static final Gson GSON = new Gson();
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(20))
@@ -29,10 +29,10 @@ public final class InstallerExecutor {
             "https://maven.minecraftforge.net/",
             "https://maven.neoforged.net/releases/",
             "https://repo1.maven.org/maven2/",
-            "https://libraries.minecraft.net/"
-    );
+            "https://libraries.minecraft.net/");
 
-    private InstallerExecutor() {}
+    private InstallerExecutor() {
+    }
 
     public static void execute(
             String sessionId,
@@ -82,7 +82,8 @@ public final class InstallerExecutor {
         root.put("profiles", Map.of("NovaCore", profile));
         root.put("clientToken", UUID.randomUUID().toString().replace("-", ""));
         root.put("authenticationDatabase", Map.of());
-        root.put("settings", Map.of("enableSnapshots", false, "enableAdvanced", false, "profileSorting", "ByLastPlayed"));
+        root.put("settings",
+                Map.of("enableSnapshots", false, "enableAdvanced", false, "profileSorting", "ByLastPlayed"));
         root.put("version", 3);
 
         Files.writeString(dir.resolve("launcher_profiles.json"), GSON.toJson(root), StandardCharsets.UTF_8);
@@ -101,7 +102,7 @@ public final class InstallerExecutor {
 
                 if ("install_profile.json".equals(name)) {
                     try (InputStream in = jar.getInputStream(entry);
-                         InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+                            InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
                         profile = GSON.fromJson(reader, InstallProfile.class);
                     }
                 } else if (name.startsWith("maven/") && !entry.isDirectory()) {
@@ -131,13 +132,17 @@ public final class InstallerExecutor {
             String sessionId, InstallProfile profile, Path librariesPath) {
 
         for (InstallProfile.Library lib : profile.libraries) {
-            if (lib.downloads == null || lib.downloads.artifact == null) continue;
+            if (lib.downloads == null || lib.downloads.artifact == null)
+                continue;
             InstallProfile.Library.LibDownload.Artifact art = lib.downloads.artifact;
-            if (art.url == null || art.url.isBlank()) continue;
-            if (art.path == null || art.path.isBlank()) continue;
+            if (art.url == null || art.url.isBlank())
+                continue;
+            if (art.path == null || art.path.isBlank())
+                continue;
 
             Path dest = librariesPath.resolve(art.path);
-            if (Files.exists(dest)) continue;
+            if (Files.exists(dest))
+                continue;
 
             try {
                 Files.createDirectories(dest.getParent());
@@ -173,9 +178,11 @@ public final class InstallerExecutor {
             String mavenRepoBase,
             EventBroadcaster broadcaster) throws Exception {
 
-        if (profile.processors == null || profile.processors.isEmpty()) return;
+        if (profile.processors == null || profile.processors.isEmpty())
+            return;
 
-        Map<String, String> vars = buildVariables(profile, installerJar, librariesPath, minecraftJar, instancePath, tempDir);
+        Map<String, String> vars = buildVariables(profile, installerJar, librariesPath, minecraftJar, instancePath,
+                tempDir);
 
         List<InstallProfile.Processor> clientProcessors = profile.processors.stream()
                 .filter(InstallProfile.Processor::isClientSide)
@@ -189,16 +196,16 @@ public final class InstallerExecutor {
             CoreLogger.get().info(LOG, "[" + sessionId + "] Processor " + index + "/" + total + ": " + processor.jar);
             broadcaster.emit("modloader_processor", Map.of(
                     "sessionId", sessionId,
-                    "step",      index,
-                    "total",     total,
-                    "jar",       processor.jar));
+                    "step", index,
+                    "total", total,
+                    "jar", processor.jar));
 
             if (allOutputsExist(processor, vars, librariesPath)) {
                 CoreLogger.get().debug(LOG, "[" + sessionId + "] Outputs already exist, skipping: " + processor.jar);
                 continue;
             }
 
-            runSingleProcessor(sessionId, processor, librariesPath, vars, javaExecutable, mavenRepoBase);
+            runSingleProcessor(sessionId, processor, librariesPath, vars, javaExecutable, mavenRepoBase, broadcaster);
         }
     }
 
@@ -207,7 +214,8 @@ public final class InstallerExecutor {
             Map<String, String> vars,
             Path librariesPath) {
 
-        if (processor.outputs == null || processor.outputs.isEmpty()) return false;
+        if (processor.outputs == null || processor.outputs.isEmpty())
+            return false;
 
         for (String rawKey : processor.outputs.keySet()) {
             String key = rawKey.trim();
@@ -221,11 +229,13 @@ public final class InstallerExecutor {
                 }
             } else {
                 String resolved = substituteVars(key, vars);
-                if (resolved.equals(key)) return false;
+                if (resolved.equals(key))
+                    return false;
                 target = Path.of(resolved);
             }
 
-            if (!Files.exists(target)) return false;
+            if (!Files.exists(target))
+                return false;
         }
         return true;
     }
@@ -236,7 +246,8 @@ public final class InstallerExecutor {
             Path librariesPath,
             Map<String, String> vars,
             String javaExecutable,
-            String mavenRepoBase) throws Exception {
+            String mavenRepoBase,
+            EventBroadcaster broadcaster) throws Exception {
 
         MavenCoordinate coord = MavenCoordinate.parse(processor.jar);
         Path processorJar = coord.toLocalPath(librariesPath);
@@ -294,6 +305,13 @@ public final class InstallerExecutor {
             String line;
             while ((line = reader.readLine()) != null) {
                 CoreLogger.get().debug(LOG, "[" + sessionId + "][proc] " + line);
+
+                if (line.contains("%") || line.contains("/") || line.length() < 120) {
+                    broadcaster.emit("modloader_processor_log", Map.of(
+                            "sessionId", sessionId,
+                            "line", line.trim(),
+                            "processor", mainClass));
+                }
             }
         }
 
@@ -308,17 +326,19 @@ public final class InstallerExecutor {
             throws IOException, InterruptedException {
 
         Path dest = coord.toLocalPath(librariesPath);
-        if (Files.exists(dest)) return dest;
+        if (Files.exists(dest))
+            return dest;
 
         Files.createDirectories(dest.getParent());
 
         List<String> repos = new ArrayList<>();
-        if (primaryRepo != null && !primaryRepo.isBlank()) repos.add(primaryRepo);
+        if (primaryRepo != null && !primaryRepo.isBlank())
+            repos.add(primaryRepo);
         repos.addAll(FALLBACK_REPOS);
 
         for (String repo : repos) {
             String base = repo.endsWith("/") ? repo : repo + "/";
-            String url  = base + coord.toPath();
+            String url = base + coord.toPath();
             try {
                 CoreLogger.get().info(LOG, "[" + sessionId + "] Fetching: " + url);
                 HttpRequest req = HttpRequest.newBuilder()
@@ -327,7 +347,8 @@ public final class InstallerExecutor {
                         .timeout(Duration.ofSeconds(90))
                         .build();
                 HttpResponse<InputStream> res = HTTP.send(req, HttpResponse.BodyHandlers.ofInputStream());
-                if (res.statusCode() != 200) continue;
+                if (res.statusCode() != 200)
+                    continue;
 
                 Files.copy(res.body(), dest, StandardCopyOption.REPLACE_EXISTING);
                 try (JarFile ignored = new JarFile(dest.toFile())) {
@@ -347,7 +368,8 @@ public final class InstallerExecutor {
     private static String readMainClass(Path jar) throws IOException {
         try (JarFile jf = new JarFile(jar.toFile())) {
             Manifest mf = jf.getManifest();
-            if (mf == null) return null;
+            if (mf == null)
+                return null;
             return mf.getMainAttributes().getValue("Main-Class");
         }
     }
@@ -362,17 +384,19 @@ public final class InstallerExecutor {
 
         Map<String, String> vars = new LinkedHashMap<>();
         vars.put("{MINECRAFT_JAR}", minecraftJar.toAbsolutePath().toString());
-        vars.put("{INSTALLER}",     installerJar.toAbsolutePath().toString());
-        vars.put("{ROOT}",          instancePath.toAbsolutePath().toString());
-        vars.put("{LIBRARY_DIR}",   librariesPath.toAbsolutePath().toString());
-        vars.put("{TEMP}",          tempDir.toAbsolutePath().toString());
-        vars.put("{SIDE}",          "client");
+        vars.put("{INSTALLER}", installerJar.toAbsolutePath().toString());
+        vars.put("{ROOT}", instancePath.toAbsolutePath().toString());
+        vars.put("{LIBRARY_DIR}", librariesPath.toAbsolutePath().toString());
+        vars.put("{TEMP}", tempDir.toAbsolutePath().toString());
+        vars.put("{SIDE}", "client");
 
         if (profile.data != null) {
             for (Map.Entry<String, InstallProfile.DataVal> e : profile.data.entrySet()) {
-                if (e.getValue() == null) continue;
+                if (e.getValue() == null)
+                    continue;
                 String rawValue = e.getValue().client;
-                if (rawValue == null || rawValue.isBlank()) continue;
+                if (rawValue == null || rawValue.isBlank())
+                    continue;
 
                 String key = "{" + e.getKey() + "}";
                 if (rawValue.startsWith("[") && rawValue.endsWith("]")) {
@@ -416,12 +440,14 @@ public final class InstallerExecutor {
     }
 
     private static void deleteDirectory(Path dir) {
-        if (!Files.exists(dir)) return;
+        if (!Files.exists(dir))
+            return;
         try {
             Files.walk(dir)
                     .sorted(Comparator.reverseOrder())
                     .map(Path::toFile)
                     .forEach(File::delete);
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 }

@@ -15,7 +15,8 @@ public class ClasspathBuilder {
     private final Path librariesPath;
     private final Path assetsPath;
     private final String vanillaVersionId;
-
+    private Path resolvedNativesDir;
+    
     private final List<Path> modloaderEntries = new ArrayList<>();
 
     public ClasspathBuilder(VersionInfo versionInfo, Path instancePath,
@@ -114,15 +115,78 @@ public class ClasspathBuilder {
         return assetsPath.toAbsolutePath().toString();
     }
 
-    public String getNativesDir() {
-        return instancePath.resolve("versions")
-                .resolve(vanillaVersionId).resolve("natives")
-                .toAbsolutePath().toString();
+
+    private Path resolveNativesDirectoryFromArguments() {
+        Path defaultNatives = instancePath.resolve("versions")
+                .resolve(vanillaVersionId).resolve("natives");
+
+        List<String> jvmArgs = extractJvmArguments(versionInfo);
+        for (String arg : jvmArgs) {
+            if (arg.startsWith("-Djava.library.path=")) {
+                String value = arg.substring("-Djava.library.path=".length());
+                String resolved = value.replace("${natives_directory}", defaultNatives.toString());
+                Path libPath = Path.of(resolved);
+                return libPath.toAbsolutePath().normalize();
+            }
+        }
+        return defaultNatives;
     }
 
+    private List<String> extractJvmArguments(VersionInfo info) {
+        List<String> result = new ArrayList<>();
+        if (info.arguments == null || info.arguments.jvm == null) {
+            return result;
+        }
+        String currentOs = TaskBuilder.currentOs();
+        for (Object entry : info.arguments.jvm) {
+            if (entry instanceof String) {
+                result.add((String) entry);
+            } else if (entry instanceof Map) {
+                // Rules-based argument
+                Map<?, ?> ruleObj = (Map<?, ?>) entry;
+                Object rules = ruleObj.get("rules");
+                Object valueObj = ruleObj.get("value");
+                if (rules == null || valueObj == null) continue;
+                boolean allowed = false;
+                if (rules instanceof List) {
+                    for (Object r : (List<?>) rules) {
+                        Map<?, ?> ruleMap = (Map<?, ?>) r;
+                        String action = (String) ruleMap.get("action");
+                        Map<?, ?> os = (Map<?, ?>) ruleMap.get("os");
+                        boolean matches = true;
+                        if (os != null) {
+                            String osName = (String) os.get("name");
+                            if (osName != null && !osName.equals(currentOs)) {
+                                matches = false;
+                            }
+                        }
+                        if (matches) {
+                            allowed = "allow".equals(action);
+                        }
+                    }
+                }
+                if (allowed) {
+                    if (valueObj instanceof String) {
+                        result.add((String) valueObj);
+                    } else if (valueObj instanceof List) {
+                        for (Object v : (List<?>) valueObj) {
+                            if (v instanceof String) result.add((String) v);
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public String getNativesDir() {
+        if (resolvedNativesDir == null) {
+            resolvedNativesDir = resolveNativesDirectoryFromArguments();
+        }
+        return resolvedNativesDir.toString();
+    }
     public Path extractNatives() throws IOException {
-        Path nativesDir = instancePath.resolve("versions")
-                .resolve(vanillaVersionId).resolve("natives");
+        Path nativesDir = Path.of(getNativesDir());
         Files.createDirectories(nativesDir);
         if (versionInfo.libraries == null) return nativesDir;
 
@@ -139,9 +203,10 @@ public class ClasspathBuilder {
 
         long total = countNativeFiles(nativesDir);
         if (total == 0 && versionInfo.inheritsFrom != null && !versionInfo.inheritsFrom.isBlank()) {
-            Path parentNativesDir = instancePath.resolve("versions").resolve(versionInfo.inheritsFrom).resolve("natives");
+            Path parentNativesDir = instancePath.resolve("versions")
+                    .resolve(versionInfo.inheritsFrom).resolve("natives");
             if (Files.exists(parentNativesDir) && countNativeFiles(parentNativesDir) > 0) {
-                System.out.println("[Natives] Fallback a natives de versión padre: " + versionInfo.inheritsFrom + " (0 extraídas para " + vanillaVersionId + ")");
+                System.out.println("[Natives] Fallback a natives de versión padre: " + versionInfo.inheritsFrom);
                 return parentNativesDir;
             }
         }

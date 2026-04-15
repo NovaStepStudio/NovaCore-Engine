@@ -1,6 +1,5 @@
 package dev.novastep.core.server;
 
-
 import dev.novastep.core.modloader.ModLoaderOrchestrator;
 
 import com.sun.net.httpserver.Filter;
@@ -27,46 +26,57 @@ public class CoreHttpServer {
 
     private static final String LOG = "CoreHttpServer";
 
-    private final HttpServer       httpServer;
+    private final HttpServer          httpServer;
     private final InstallOrchestrator orchestrator;
-    private final ManifestClient   manifestClient;
-    private final MinecraftLauncher launcher;
-    private final InstanceManager  instanceManager;
-    private final EventBroadcaster broadcaster;
-    private final byte[]           tokenBytes;
+    private final ManifestClient      manifestClient;
+    private final MinecraftLauncher   launcher;
+    private final InstanceManager     instanceManager;
+    private final EventBroadcaster    broadcaster;
+    private final byte[]              tokenBytes;
 
     public CoreHttpServer(int port, DownloadManager downloadManager,
             EventBroadcaster broadcaster, String instancesDir,
             String accessToken) throws IOException {
+        this(port, downloadManager, broadcaster, instancesDir, accessToken, null);
+    }
+
+    public CoreHttpServer(int port, DownloadManager downloadManager,
+            EventBroadcaster broadcaster, String instancesDir,
+            String accessToken, Runnable shutdownCallback) throws IOException {
         this.broadcaster     = broadcaster;
         this.tokenBytes      = accessToken.getBytes(StandardCharsets.UTF_8);
         this.orchestrator    = new InstallOrchestrator(downloadManager, broadcaster);
         this.manifestClient  = new ManifestClient();
         ModLoaderOrchestrator modLoaderOrchestrator = new ModLoaderOrchestrator(downloadManager, broadcaster);
-        this.launcher = new MinecraftLauncher(broadcaster, modLoaderOrchestrator);
+        this.launcher        = new MinecraftLauncher(broadcaster, modLoaderOrchestrator);
         this.instanceManager = new InstanceManager(Path.of(instancesDir).toAbsolutePath());
 
         httpServer = HttpServer.create(new InetSocketAddress("localhost", port), 0);
         httpServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
 
-        registerRoutes(downloadManager);
+        Runnable safeShutdown = shutdownCallback != null
+                ? shutdownCallback
+                : () -> System.exit(0);
+
+        registerRoutes(downloadManager, safeShutdown);
     }
 
-    private void registerRoutes(DownloadManager downloadManager) {
+    private void registerRoutes(DownloadManager downloadManager, Runnable shutdownCallback) {
         secure(httpServer.createContext("/api",                          new ApiHandler()));
         secure(httpServer.createContext("/versions",                     new VersionsHandler(manifestClient)));
-        secure(httpServer.createContext("/install",                      new InstallHandler(orchestrator)));
+        secure(httpServer.createContext("/install",                      new InstallHandler(orchestrator, downloadManager)));
         secure(httpServer.createContext("/progress",                     new ProgressHandler(downloadManager)));
         secure(httpServer.createContext("/instances",                    new InstanceHandler(instanceManager, orchestrator)));
         secure(httpServer.createContext("/system/resources",             new SystemResourcesHandler()));
         secure(httpServer.createContext("/runtime",                      new RuntimeHandler(downloadManager, broadcaster)));
         secure(httpServer.createContext("/launch",                       new LaunchHandler(launcher)));
+        secure(httpServer.createContext("/close",                        new CloseHandler(launcher, shutdownCallback)));
         secure(httpServer.createContext("/debug/download/client",        new DebugHandler(downloadManager, "client")));
         secure(httpServer.createContext("/debug/download/libraries",     new DebugHandler(downloadManager, "libraries")));
         secure(httpServer.createContext("/debug/download/assets",        new DebugHandler(downloadManager, "assets")));
         secure(httpServer.createContext("/debug/download/natives",       new DebugHandler(downloadManager, "natives")));
         secure(httpServer.createContext("/modloaders",                   new ModLoaderHandler(new ModLoaderOrchestrator(downloadManager, broadcaster))));
-        
+
         secure(httpServer.createContext("/", exchange -> {
             String path = exchange.getRequestURI().getPath();
             if (path.equals("/")) {
@@ -80,11 +90,13 @@ public class CoreHttpServer {
         CoreLogger.get().info(LOG, "Routes registered (all protected by access token)");
     }
 
-    private void secure(HttpContext ctx) {
+    private HttpContext secure(HttpContext ctx) {
         ctx.getFilters().add(new AuthFilter(tokenBytes));
+        return ctx;
     }
 
     private static final class AuthFilter extends Filter {
+
         private final byte[] tokenBytes;
 
         AuthFilter(byte[] tokenBytes) {
@@ -124,4 +136,6 @@ public class CoreHttpServer {
     public void stop() { httpServer.stop(0); }
 
     public int getPort() { return httpServer.getAddress().getPort(); }
+
+    public MinecraftLauncher getLauncher() { return launcher; }
 }

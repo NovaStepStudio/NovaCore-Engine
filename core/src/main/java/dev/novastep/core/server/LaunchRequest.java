@@ -12,7 +12,8 @@ public class LaunchRequest {
     public String  instancePath;
     public String  sharedPath;
     public String  javaPath;
-    public Boolean hardwareAcceleration;
+
+    public Boolean disableHardwareAcceleration;
     public String  gcPreset;
     public String  gpuPreference;
 
@@ -40,8 +41,8 @@ public class LaunchRequest {
     }
 
     public static class JvmConfig {
-        public Integer minMemoryMb;
-        public Integer maxMemoryMb;
+        public Integer      minMemoryMb;
+        public Integer      maxMemoryMb;
         public List<String> extraArgs;
         public List<String> prependArgs;
     }
@@ -53,7 +54,7 @@ public class LaunchRequest {
     }
 
     public static class LaunchFeatures {
-        public Boolean demo;
+        public Boolean   demo;
         public QuickPlay quickPlay;
 
         public boolean isDemoMode()   { return Boolean.TRUE.equals(demo); }
@@ -71,13 +72,11 @@ public class LaunchRequest {
     }
 
     public static class GameCustomization {
-        public String gameDir;
-        public List<String> extraGameArgs;
-        public Map<String, String> extraJvmProperties;
-        public Boolean disableMultiplayer;
-        public Boolean disableChat;
-        public String serverHost;
-        public Integer serverPort;
+        public String             gameDir;
+        public List<String>       extraGameArgs;
+        public Map<String,String> extraJvmProperties;
+        public String             serverHost;
+        public Integer            serverPort;
     }
 
     public String resolvedInstancePath() {
@@ -111,19 +110,19 @@ public class LaunchRequest {
 
     public String resolvedLauncherVersion() {
         return (launcher != null && launcher.version != null && !launcher.version.isBlank())
-            ? launcher.version : "1.0.0";
+            ? launcher.version : dev.novastep.core.CoreVersion.get();
     }
 
-    public String resolvedJavaPath() { return javaPath != null ? javaPath : "java"; }
-    public int resolvedWidth() { return window != null && window.width != null ? window.width : 854; }
-    public int resolvedHeight() { return window != null && window.height != null ? window.height : 480; }
-    public boolean isFullscreen() { return window != null && Boolean.TRUE.equals(window.fullscreen); }
-    public String resolvedUsername() { return auth != null && auth.username != null ? auth.username : "Player"; }
-    public String resolvedUuid() { return auth != null && auth.uuid != null ? auth.uuid : "00000000-0000-0000-0000-000000000000"; }
+    public String resolvedJavaPath()    { return javaPath != null ? javaPath : "java"; }
+    public int    resolvedWidth()       { return window != null && window.width  != null ? window.width  : 854; }
+    public int    resolvedHeight()      { return window != null && window.height != null ? window.height : 480; }
+    public boolean isFullscreen()       { return window != null && Boolean.TRUE.equals(window.fullscreen); }
+    public String resolvedUsername()    { return auth != null && auth.username    != null ? auth.username    : "Player"; }
+    public String resolvedUuid()        { return auth != null && auth.uuid        != null ? auth.uuid        : "00000000-0000-0000-0000-000000000000"; }
     public String resolvedAccessToken() { return auth != null && auth.accessToken != null ? auth.accessToken : "0"; }
-    public String resolvedUserType() { return auth != null && auth.userType != null ? auth.userType : "msa"; }
-    public String resolvedClientId() { return auth != null && auth.clientId != null ? auth.clientId : ""; }
-    public String resolvedXuid() { return auth != null && auth.xuid != null ? auth.xuid : ""; }
+    public String resolvedUserType()    { return auth != null && auth.userType    != null ? auth.userType    : "msa"; }
+    public String resolvedClientId()    { return auth != null && auth.clientId    != null ? auth.clientId    : ""; }
+    public String resolvedXuid()        { return auth != null && auth.xuid        != null ? auth.xuid        : ""; }
 
     public int resolvedMinMemory() {
         int req = jvm != null && jvm.minMemoryMb != null ? jvm.minMemoryMb : 0;

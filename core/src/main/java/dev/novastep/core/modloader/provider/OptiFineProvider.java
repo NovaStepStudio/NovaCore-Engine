@@ -418,7 +418,7 @@ public final class OptiFineProvider implements ModLoaderProvider {
     private String get(String url) throws IOException, InterruptedException {
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("User-Agent", "Mozilla/5.0 NovaCore/1.0")
+                .header("User-Agent", "Mozilla/5.0 NovaCore/" + dev.novastep.core.CoreVersion.get())
                 .GET()
                 .timeout(Duration.ofSeconds(30))
                 .build();

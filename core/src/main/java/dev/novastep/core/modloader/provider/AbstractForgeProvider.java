@@ -94,6 +94,7 @@ abstract class AbstractForgeProvider implements ModLoaderProvider {
                 minecraftJar, instancePath, javaExec, mavenRepoBase(), broadcaster);
 
         extractVersionJson(sessionId, loader, installerJar, instancePath);
+        cleanupInstaller(sessionId, installerJar);
 
         broadcaster.emit("modloader_install_done", Map.of(
                 "sessionId", sessionId,
@@ -205,7 +206,25 @@ abstract class AbstractForgeProvider implements ModLoaderProvider {
         return res.body();
     }
 
-    protected List<String> parseMavenMetadataVersions(String xml) {
+    private void cleanupInstaller(String sessionId, Path installerJar) {
+        try {
+            Files.deleteIfExists(installerJar);
+            CoreLogger.get().info(name(), "[" + sessionId + "] Installer JAR removed: " + installerJar.getFileName());
+            Path installersDir = installerJar.getParent();
+            if (installersDir != null && Files.isDirectory(installersDir)) {
+                try (var entries = Files.list(installersDir)) {
+                    if (entries.findFirst().isEmpty()) {
+                        Files.delete(installersDir);
+                        CoreLogger.get().info(name(), "[" + sessionId + "] installers/ directory removed.");
+                    }
+                }
+            }
+        } catch (IOException ex) {
+            CoreLogger.get().warn(name(), "[" + sessionId + "] Could not clean up installer: " + ex.getMessage());
+        }
+    }
+
+        protected List<String> parseMavenMetadataVersions(String xml) {
         List<String> versions = new ArrayList<>();
         int start = 0;
         while (true) {
