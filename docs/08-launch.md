@@ -195,8 +195,6 @@ interface LaunchOptions {
     gameDir?:            string;
     extraGameArgs?:      string[];
     extraJvmProperties?: Record<string, string>;
-    disableMultiplayer?: boolean;
-    disableChat?:        boolean;
     serverHost?:         string;
     serverPort?:         number;
   };

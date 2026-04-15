@@ -1,6 +1,7 @@
 <div align="center">
-  <img src="docs/NovaCore-Engine.png" alt="NovaCore-Engine" width="500"/>
-  <p><strong>Motor de backend para launchers de Minecraft Java</strong></p>
+  <img src="Docs/NovaCore-Engine.png" alt="NovaCore-Engine" width="500"/>
+  <h1>NovaCore-Engine</h1>
+  <p><strong>El motor de backend definitivo para launchers de Minecraft Java</strong></p>
   <p>
     <img src="https://img.shields.io/badge/Java-21+-orange?style=flat-square"/>
     <img src="https://img.shields.io/badge/Node.js-18+-green?style=flat-square"/>
@@ -11,141 +12,143 @@
 
 ---
 
-NovaCore-Engine es el motor interno que potencia [StepLauncher](https://github.com/NovaStepStudios/StepLauncher). Es un proceso Java independiente que expone toda la lógica de Minecraft —instalación, descarga, lanzamiento, gestión de instancias— a través de una API HTTP local y un WebSocket de eventos en tiempo real.
+NovaCore-Engine es un motor de alto rendimiento que potencia launchers modernos (incluyendo [StepLauncher](https://github.com/NovaStepStudios/StepLauncher)). Es un proceso Java independiente que centraliza toda la lógica compleja de Minecraft —instalación, gestión de activos, resolución de dependencias y lanzamiento— exponiéndola a través de una API HTTP y eventos WebSocket en tiempo real.
 
-La idea es simple: tu launcher o aplicación habla con el engine a través de HTTP y WebSocket. El engine se encarga de todo lo pesado. Vos solo consumís los eventos y mostrás lo que está pasando en pantalla.
-
-El cliente Node.js incluido [@novastepstudios/novacore-engine-client](./@novastepstudios/novacore-engine-client) te conecta al engine en segundos, con soporte completo para TypeScript a través de los tipos incluidos.
+Este enfoque desacoplado permite construir interfaces hermosas en **Electron, Next.js, Flutter o Java** sin tener que preocuparse por la complejidad interna del juego.
 
 ---
 
-## ¿Cómo funciona?
+## 🏗️ ¿Cómo funciona? (Arquitectura)
 
-El engine corre como un proceso Java separado de tu aplicación. Internamente levanta dos servicios:
+El motor funciona como un servidor local que tu aplicación controla. No hay dependencias raras; todo se maneja a través de protocolos estándar.
 
-- **HTTP en el puerto 7878** — endpoints REST para instalar, lanzar, crear instancias, consultar versiones y más.
-- **WebSocket en el puerto 7879** — eventos en tiempo real: progreso de descargas, logs del juego, errores, etc.
+- **API HTTP** (:7878) — Comandos directos: instalar, lanzar, gestionar instancias, consultar versiones.
+- **WebSocket** (:7879) — Eventos: progreso granular de descargas, logs del juego, cambios de estado.
 
-Tu código (Node.js, Electron, Java puro, o lo que quieras) se conecta a esos puertos y controla todo desde ahí. No hay dependencias raras, es solo HTTP y WebSocket estándar.
-
-```
-Tu app / Launcher
-    │
-    ├── HTTP  :7878  → instalar, lanzar, instancias, versiones...
-    └── WS    :7879  → progreso, logs, eventos en tiempo real
-         │
-    novacore-engine.jar (proceso Java en background)
-         │
-    Mojang APIs + Sistema de archivos local
+```text
+Tu App / Launcher (UI)
+        │
+        ├── [HTTP] ──► Control de operaciones (POST /install, POST /launch)
+        └── [WS]   ──◄ Feedback en tiempo real (Eventos de progreso, Logs)
+              │
+        NovaCore-Engine (Proceso Java independiente)
+              │
+        Mojang APIs + Sistema de archivos local + Minecraft Runtime
 ```
 
 ---
 
-## Requisitos
+## ✨ Características Principales
 
-| Componente | Versión mínima | Para qué |
-|---|---|---|
-| Java | 21+ | Correr el engine |
-| Node.js | 18+ | Usar el cliente JS/TS |
-| Gradle | 8+ | Compilar el engine (solo si lo compilás vos) |
+- 🚀 **Rendimiento con Virtual Threads**: Basado en **Java 21 (Project Loom)** para manejar miles de conexiones y descargas I/O sin bloquear hilos.
+- 🛠️ **ModLoaders Integrados**: Soporte nativo para **Forge, Fabric, Quilt y NeoForge**.
+- 📂 **Branding Dinámico**: Gestión de metadatos basada en el nombre de tu launcher. Los archivos se guardan como `TuLauncher.json`, permitiendo la coexistencia de múltiples launchers.
+- 🔒 **Privacidad Total**: Eliminación completa de telemetría. Tus datos y los de tus usuarios son 100% privados.
+- 🧹 **Cierre Limpio (Tree Kill)**: Gestión inteligente de procesos que asegura que Minecraft y sus subprocesos se cierren correctamente, evitando procesos huérfanos.
+- 📦 **Caché Compartida**: Sistema de `sharedPath` para bibliotecas y activos, ahorrando gigabytes de espacio en disco.
 
 ---
 
-## Inicio rápido
+## 📋 Requisitos del Sistema
 
-### 1. Compilar el engine
+| Componente | Versión Mínima | Propósito |
+| :--- | :--- | :--- |
+| **Java** | 21+ | Ejecución del motor principal (Core). |
+| **Node.js** | 18+ | Uso del cliente oficial y herramientas de desarrollo. |
+| **Gradle** | 8+ | Compilación del motor (opcional). |
 
+---
+
+## 🚀 Inicio Rápido
+
+### 1. Compilar el Engine
 ```bash
 cd core
-
-# Linux / macOS
+# En Windows
+.\gradlew.bat jar
+# En Linux/macOS
 ./gradlew jar
+```
+El ejecutable generado se encontrará en `core/build/libs/novacore-engine.jar`.
 
-# Windows
-gradlew.bat jar
-# Oh
-./build.bat
+### 2. Instalación del Cliente
+```bash
+npm install @novastepstudios/novacore-engine-client
 ```
 
-El JAR queda en `core/build/libs/novacore-engine.jar`.
+### 3. Ejemplo de Uso Profesional (TypeScript)
+```typescript
+import { NovaCoreEngine } from "@novastepstudios/novacore-engine-client";
 
-### 2. Instalar el cliente Node.js
+const engine = new NovaCoreEngine({ jar: "./novacore-engine.jar" });
+const client = await engine.start();
 
-```bash
-cd client
-npm install
-```
+// Instalación con progreso detallado
+const { sessionId } = await client.install({
+    version: "1.21.1",
+    instancePath: "./game",
+    launcher: { name: "MiLauncher" }
+});
 
-### 3. Configurar y correr un ejemplo
+client.on("session_progress", (p) => {
+    console.log(`Progreso: ${p.overallPercent}% | Descargado: ${p.downloadedBytes} bytes`);
+});
 
-Editá `client/src/examples/config.js` con la ruta al JAR y tus directorios. Después:
-
-```bash
-npm run example:sysinfo    # Info del sistema y versiones disponibles
-npm run example:instances  # Crear y gestionar instancias
-npm run example:install    # Instalar una versión de Minecraft
-npm run example:launch     # Lanzar Minecraft vanilla
-npm run example:advanced   # Opciones avanzadas de lanzamiento
-npm run example:full       # Flujo completo: instalar y lanzar
+// Lanzamiento con optimización de memoria
+await client.launch({
+    version: "1.21.1",
+    instancePath: "./game",
+    jvm: { maxMemoryMb: 4096 },
+    gcPreset: "g1gc_optimized"
+});
 ```
 
 ---
 
-## Documentación
+## 📂 Estructura del Proyecto
 
-La documentación completa está en la carpeta [`docs/`](docs/):
-
-| Documento | Qué cubre |
-|---|---|
-| [Arquitectura](docs/01-architecture.md) | Cómo está estructurado el engine por dentro |
-| [Compilar el Engine](docs/02-building.md) | Guía paso a paso para compilar el JAR |
-| [API HTTP](docs/03-http-api.md) | Todos los endpoints con ejemplos de request/response |
-| [Eventos WebSocket](docs/04-websocket-events.md) | Todos los eventos que emite el engine |
-| [Cliente Node.js](docs/05-nodejs-client.md) | Cómo integrar el cliente en tu proyecto |
-| [Instancias](docs/06-instances.md) | Sistema de gestión de instancias |
-| [Instalación](docs/07-install.md) | Cómo funciona el sistema de instalación |
-| [Lanzamiento](docs/08-launch.md) | Opciones de lanzamiento, auth, JVM, GC |
-| [Integración con Java](docs/09-java-integration.md) | Usar el engine desde Java puro |
-| [Referencia de Tipos](docs/10-type-reference.md) | Todas las interfaces TypeScript |
-
----
-
-## Estructura del proyecto
-
-```
+```text
 NovaCore-Engine/
-├── core/                             # Engine Java (el backend)
-│   ├── build.gradle
-│   └── src/main/java/dev/novastep/core/
-│       ├── Main.java                 # Entry point y startup
-│       ├── server/                   # HTTP server + handlers por endpoint
-│       ├── websocket/                # EventBroadcaster (servidor WebSocket)
-│       ├── minecraft/                # Instalación, lanzamiento, instancias
-│       ├── downloader/               # Descarga concurrente con sesiones
-│       ├── log/                      # Logger interno con rotación
-│       └── util/                     # SystemResources y utilidades
+├── core/                             # Backend Java (El motor)
+│   ├── src/main/java/dev/novastep/core/
+│   │   ├── Main.java                 # Punto de entrada y gestión de ciclo de vida
+│   │   ├── server/                   # Servidor HTTP y Handlers de la API
+│   │   ├── websocket/                # Emisión de eventos en tiempo real
+│   │   ├── minecraft/                # Lógica de instalación, lanzamiento e instancias
+│   │   ├── downloader/               # Sistema de descarga concurrente por sesiones
+│   │   └── util/                     # Herramientas de sistema y Tree-Kill
 │
-├── client/                           # Cliente Node.js
-│   ├── package.json
-│   ├── minecraft-core.d.ts           # Tipos TypeScript completos
-│   └── src/
-│       ├── CoreProcess.js            # Spawnea y gestiona el proceso Java
-│       ├── CoreClient.js             # Cliente HTTP + WebSocket
-│       └── examples/                 # Ejemplos listos para correr
+├── @novastepstudios/                 # SDK de Cliente (Node.js/TS)
+│   ├── src/
+│   │   ├── NovaCoreEngine.ts         # Orquestador del proceso Java
+│   │   ├── NovaCoreClient.ts         # Cliente API y WebSocket
+│   │   └── types/                    # Definiciones de tipos completas en español
 │
-└── docs/                             # Documentación completa
+└── Docs/                             # Documentación técnica detallada
 ```
 
 ---
 
-## Notas rápidas
+## 📖 Documentación Completa
 
-- El engine solo escucha en `localhost` por diseño. No está pensado para exponerse a la red.
-- Los puertos 7878 y 7879 son configurables si tenés conflictos con otros procesos.
-- El sistema de `sharedPath` te permite que múltiples instancias compartan assets y librerías sin duplicar archivos en disco.
+| Documento | Descripción |
+| :--- | :--- |
+| 🏗️ [Arquitectura](Docs/01-architecture.md) | Análisis profundo del diseño interno y concurrencia. |
+| 🌐 [API HTTP](Docs/03-http-api.md) | Referencia de todos los endpoints y parámetros. |
+| ⚡ [Eventos WebSocket](Docs/04-websocket-events.md) | Guía completa de eventos y payloads en tiempo real. |
+| 📦 [Cliente Node.js](Docs/05-nodejs-client.md) | Manual de integración del SDK en aplicaciones TS/JS. |
+| 🎮 [Lanzamiento](Docs/08-launch.md) | Guía de configuración de JVM, GC y parámetros de juego. |
+
+---
+
+## 💡 Notas Adicionales
+
+- **Seguridad**: El motor genera un token de acceso seguro al iniciar, garantizando que solo tu aplicación pueda controlarlo.
+- **Portabilidad**: NovaCore es agnóstico a la plataforma. Funciona igual de bien en Windows, Linux y macOS.
+- **Eficiencia**: Gracias a la reutilización de activos, las instalaciones de versiones que ya tienes en caché son casi instantáneas.
 
 ---
 
 <div align="center">
-  <sub>Hecho con 🔥 por <a href="https://github.com/NovaStepStudios">NovaStepStudios</a></sub>
+  <sub>Desarrollado con pasión por <a href="https://github.com/Stepnicka012">NovaStepStudios (Alias: Stepnicka012)</a></sub>
 </div>

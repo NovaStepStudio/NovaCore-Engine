@@ -179,8 +179,6 @@ Estos son todos los campos que podés configurar en `config` al crear o actualiz
 | `launcherVersion` | `string` | `null` | Versión del launcher |
 | `serverHost` | `string` | `null` | Conectar automáticamente a este servidor al lanzar |
 | `serverPort` | `number` | `null` | Puerto del servidor |
-| `disableMultiplayer` | `boolean` | `false` | Deshabilitar botón de multijugador |
-| `disableChat` | `boolean` | `false` | Deshabilitar chat |
 | `customGameDir` | `string` | `null` | Directorio de juego personalizado (saves, resourcepacks, etc.) |
 
 ---

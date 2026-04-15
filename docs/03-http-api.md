@@ -13,6 +13,7 @@ curl http://localhost:7878/api
 ```
 
 **Respuesta:**
+
 ```json
 {
   "name": "novacore-engine",
@@ -52,6 +53,7 @@ curl http://localhost:7878/system/resources
 ```
 
 **Respuesta:**
+
 ```json
 {
   "cpu": {
@@ -95,6 +97,7 @@ curl "http://localhost:7878/versions?type=snapshot"
 | `type` | `release`, `snapshot`, `old_alpha`, `old_beta` | Filtrar por tipo |
 
 **Respuesta:**
+
 ```json
 {
   "latest": {
@@ -155,6 +158,7 @@ curl -X POST http://localhost:7878/install \
 | `debug` | `boolean` | `false` | Emitir eventos de debug detallados |
 
 **Respuesta:**
+
 ```json
 {
   "sessionId": "session-1710000000000-1",
@@ -181,6 +185,7 @@ curl http://localhost:7878/progress
 ```
 
 **Respuesta (sesión específica):**
+
 ```json
 {
   "sessionId": "session-1710000000000-1",
@@ -198,6 +203,7 @@ curl http://localhost:7878/progress
 ```
 
 **Respuesta (todas las sesiones):**
+
 ```json
 {
   "count": 2,
@@ -256,6 +262,7 @@ curl -X POST http://localhost:7878/launch \
 | `game.serverPort` | `number` | — | Puerto del servidor |
 
 **Respuesta:**
+
 ```json
 {
   "launchId": "launch-1710000000000-1",
@@ -280,6 +287,7 @@ curl http://localhost:7878/launch/status/launch-1710000000000-1
 ```
 
 **Respuesta:**
+
 ```json
 {
   "launchId": "launch-1710000000000-1",
@@ -299,6 +307,7 @@ curl -X POST http://localhost:7878/launch/kill/launch-1710000000000-1
 ```
 
 **Respuesta:**
+
 ```json
 {
   "launchId": "launch-1710000000000-1",
@@ -317,6 +326,7 @@ curl http://localhost:7878/instances
 ```
 
 **Respuesta:**
+
 ```json
 {
   "count": 2,
@@ -431,6 +441,7 @@ curl http://localhost:7878/debug/download/client
 **Categorías:** `client`, `libraries`, `assets`, `natives`
 
 **Respuesta:**
+
 ```json
 {
   "sessionId": "session-1710000000000-1",

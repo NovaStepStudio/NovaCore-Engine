@@ -1,0 +1,50 @@
+
+[2026-04-15 15:48:09.241] [INFO] [Core] ═══ SESSION START ═══ (pid=15100, queueLimit=1500)
+[2026-04-15 15:48:09.331] [INFO] [Core] novacore-engine v1.2.0 starting
+[2026-04-15 15:48:09.334] [INFO] [Core] Instances dir: C:\Users\stepn\Desktop\Workflow\NovaCore-Engine\@novastepstudios\novacore-engine-client\example\.minecraft\instances
+[2026-04-15 15:48:09.740] [INFO] [EventBroadcaster] WebSocket started on port 7879
+[2026-04-15 15:48:10.532] [INFO] [DownloadManager] DownloadManager initialized: threads=2 httpConcurrency=4
+[2026-04-15 15:48:10.614] [INFO] [CoreHttpServer] Routes registered (all protected by access token)
+[2026-04-15 15:48:10.615] [INFO] [CoreHttpServer] HTTP server started on port 7878
+[2026-04-15 15:48:10.615] [INFO] [Core] HTTP    > http://localhost:7878
+[2026-04-15 15:48:10.615] [INFO] [Core] WS      > ws://localhost:7879
+[2026-04-15 15:48:10.615] [INFO] [Core] Threads > 8
+[2026-04-15 15:48:10.616] [INFO] [Core] Version > 1.2.0
+[2026-04-15 15:48:10.616] [INFO] [Core] Ready
+[2026-04-15 15:48:11.003] [INFO] [EventBroadcaster] WS cliente autenticado: /127.0.0.1:52731
+[2026-04-15 15:48:11.195] [INFO] [InstallOrchestrator] Install: version=1.21.4, path=C:\Users\stepn\Desktop\Workflow\NovaCore-Engine\@novastepstudios\novacore-engine-client\example\.minecraft\instances\vanilla-1.21.4
+[2026-04-15 15:48:11.263] [INFO] [InstallOrchestrator] [session-1776278891184-1] Metadata saved: novalauncher.json
+[2026-04-15 15:48:13.232] [INFO] [EventBroadcaster] Manifest resolved [session-1776278891184-1]: 1.21.4
+[2026-04-15 15:48:13.278] [INFO] [InstallOrchestrator] [session-1776278891184-1] Version: 1.21.4 mainClass=net.minecraft.client.main.Main [online]
+[2026-04-15 15:48:13.858] [INFO] [DownloadManager] Session [session-1776278891184-1] submitting 4119 tasks
+[2026-04-15 15:52:32.444] [INFO] [EventBroadcaster] Session completed: session-1776278891184-1 files=4119
+[2026-04-15 15:52:32.457] [INFO] [InstallOrchestrator] [session-1776278891184-1] Download batch: 4119 downloaded, 0 skipped, 0 failed.
+[2026-04-15 15:52:44.201] [INFO] [InstallOrchestrator] [session-1776278891184-1] Verify round 0: 4119/4119 passed ✓ ALL OK
+[2026-04-15 15:52:44.522] [INFO] [InstallOrchestrator] [session-1776278891184-1] Natives extracted: C:\Users\stepn\Desktop\Workflow\NovaCore-Engine\@novastepstudios\novacore-engine-client\example\.minecraft\instances\vanilla-1.21.4\versions\1.21.4\natives (vanilla base: 1.21.4)
+[2026-04-15 15:52:44.523] [INFO] [InstallOrchestrator] [session-1776278891184-1] Vanilla install complete — modules: {assets=verified, libraries=verified, client=verified, natives=verified}
+[2026-04-15 15:52:44.524] [INFO] [InstallOrchestrator] [session-1776278891184-1] Install finished: version=1.21.4
+
+[2026-04-15 16:06:17.272] [INFO] [Core] === SESSION START === (pid=14600, queueLimit=1500)
+[2026-04-15 16:06:17.375] [INFO] [Core] novacore-engine v1.2.0 starting
+[2026-04-15 16:06:17.379] [INFO] [Core] Instances dir: C:\Users\stepn\Desktop\Workflow\NovaCore-Engine\@novastepstudios\novacore-engine-client\example\.minecraft\instances
+[2026-04-15 16:06:17.840] [INFO] [EventBroadcaster] WebSocket started on port 7879
+[2026-04-15 16:06:18.490] [INFO] [DownloadManager] DownloadManager initialized: threads=2 httpConcurrency=4
+[2026-04-15 16:06:18.565] [INFO] [CoreHttpServer] Routes registered (all protected by access token)
+[2026-04-15 16:06:18.566] [INFO] [CoreHttpServer] HTTP server started on port 7878
+[2026-04-15 16:06:18.573] [INFO] [Core] HTTP    > http://localhost:7878
+[2026-04-15 16:06:18.577] [INFO] [Core] WS      > ws://localhost:7879
+[2026-04-15 16:06:18.581] [INFO] [Core] Threads > 8
+[2026-04-15 16:06:18.584] [INFO] [Core] Version > 1.2.0
+[2026-04-15 16:06:18.585] [INFO] [Core] Ready
+[2026-04-15 16:06:18.888] [INFO] [EventBroadcaster] WS cliente autenticado: /127.0.0.1:52903
+[2026-04-15 16:06:19.125] [INFO] [InstallOrchestrator] Install: version=1.21.4, path=C:\Users\stepn\Desktop\Workflow\NovaCore-Engine\@novastepstudios\novacore-engine-client\example\.minecraft\instances\vanilla-1.21.4
+[2026-04-15 16:06:19.248] [INFO] [InstallOrchestrator] [session-1776279979102-1] Metadata saved: novalauncher.json
+[2026-04-15 16:06:22.296] [INFO] [EventBroadcaster] Manifest resolved [session-1776279979102-1]: 1.21.4
+[2026-04-15 16:06:22.394] [INFO] [InstallOrchestrator] [session-1776279979102-1] Version: 1.21.4 mainClass=net.minecraft.client.main.Main [online]
+[2026-04-15 16:06:24.350] [INFO] [DownloadManager] Session [session-1776279979102-1] submitting 4119 tasks
+[2026-04-15 16:06:40.084] [INFO] [EventBroadcaster] Session completed: session-1776279979102-1 files=4119
+[2026-04-15 16:06:40.100] [INFO] [InstallOrchestrator] [session-1776279979102-1] Download batch: 0 downloaded, 4119 skipped, 0 failed.
+[2026-04-15 16:06:51.776] [INFO] [InstallOrchestrator] [session-1776279979102-1] Verify round 0: 4119/4119 passed ✓ ALL OK
+[2026-04-15 16:06:52.050] [INFO] [InstallOrchestrator] [session-1776279979102-1] Natives extracted: C:\Users\stepn\Desktop\Workflow\NovaCore-Engine\@novastepstudios\novacore-engine-client\example\.minecraft\instances\vanilla-1.21.4\versions\1.21.4\natives (vanilla base: 1.21.4)
+[2026-04-15 16:06:52.050] [INFO] [InstallOrchestrator] [session-1776279979102-1] Vanilla install complete — modules: {assets=verified, libraries=verified, client=verified, natives=verified}
+[2026-04-15 16:06:52.052] [INFO] [InstallOrchestrator] [session-1776279979102-1] Install finished: version=1.21.4
