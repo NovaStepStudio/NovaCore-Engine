@@ -63,6 +63,12 @@ dev.novastep.core/
 │       ├── VersionManifest.java
 │       └── AssetIndexManifest.java
 │
+├── modloader/                   # Sistema de ModLoaders Avanzado
+│   ├── ModLoaderOrchestrator.java # Instalación concurrente de modloaders
+│   ├── ModLoaderRegistry.java   # Registro de modloaders soportados (Fabric, Forge, etc.)
+│   └── model/
+│       └── InstalledLoader.java # Modelo del estado persistente del modloader
+│
 ├── downloader/                  # Sistema de descarga
 │   ├── DownloadManager.java     # Administra sesiones y el thread pool
 │   ├── DownloadSession.java     # Estado de una sesión de descarga

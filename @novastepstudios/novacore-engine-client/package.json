@@ -25,6 +25,7 @@
     "clean": "rm -rf dist"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "typescript": "^5.4.0"
   },
   "keywords": [
@@ -39,8 +40,5 @@
   ],
   "engines": {
     "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "@types/node": "^25.6.0"
   }
 }

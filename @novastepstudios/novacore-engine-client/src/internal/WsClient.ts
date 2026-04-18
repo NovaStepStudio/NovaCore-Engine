@@ -4,10 +4,10 @@ type Callback<K extends NovaCoreEventName> = (data: NovaCoreEvents[K], raw: WsBa
 type AnyCallback = (data: unknown, raw: WsBaseEvent) => void;
 
 export interface WsClientOptions {
-    url:                  string;
-    token:                string;
-    autoReconnect?:       boolean;
-    reconnectDelay?:      number;
+    url: string;
+    token: string;
+    autoReconnect?: boolean;
+    reconnectDelay?: number;
     maxReconnectAttempts?: number;
 }
 
@@ -18,40 +18,40 @@ export class WsClient {
     private timer: ReturnType<typeof setTimeout> | null = null;
     private dead = false;
     private readonly map = new Map<NovaCoreEventName | "*", Set<AnyCallback>>();
-    
+
     constructor(opts: WsClientOptions) {
         this.opts = {
-            autoReconnect:        true,
-            reconnectDelay:       1500,
+            autoReconnect: true,
+            reconnectDelay: 1500,
             maxReconnectAttempts: 0,
             ...opts,
         };
     }
-    
+
     connect(): Promise<void> {
         return new Promise((resolve, reject) => {
             const url = `${this.opts.url}?token=${encodeURIComponent(this.opts.token)}`;
             try { this.ws = new WebSocket(url); }
             catch (e) { reject(e); return; }
-            
+
             this.once("connected", () => resolve());
-            
-            this.ws.onopen    = () => { this.attempts = 0; };
+
+            this.ws.onopen = () => { this.attempts = 0; };
             this.ws.onmessage = (e) => this.dispatch(e.data as string);
-            this.ws.onerror   = (e) => { reject(e); this.scheduleReconnect(); };
-            this.ws.onclose   = () => this.scheduleReconnect();
+            this.ws.onerror = (e) => { reject(e); this.scheduleReconnect(); };
+            this.ws.onclose = () => this.scheduleReconnect();
         });
     }
-    
+
     close(): void {
         this.dead = true;
         if (this.timer) { clearTimeout(this.timer); this.timer = null; }
         this.ws?.close(1000, "bye");
         this.ws = null;
     }
-    
+
     get connected(): boolean { return this.ws?.readyState === WebSocket.OPEN; }
-    
+
     on<K extends NovaCoreEventName>(event: K, cb: Callback<K>): this {
         this.add(event, cb as AnyCallback); return this;
     }
@@ -72,7 +72,7 @@ export class WsClient {
             this.once(event, cb);
         });
     }
-    
+
     private add(k: NovaCoreEventName | "*", cb: AnyCallback) {
         if (!this.map.has(k)) this.map.set(k, new Set());
         this.map.get(k)!.add(cb);
@@ -81,8 +81,8 @@ export class WsClient {
         let p: WsBaseEvent;
         try { p = JSON.parse(raw) as WsBaseEvent; } catch { return; }
         const key = p.event as NovaCoreEventName;
-        this.map.get(key)?.forEach(cb => { try { cb(p.data, p); } catch {} });
-        this.map.get("*")?.forEach(cb => { try { cb(p.data, p); } catch {} });
+        this.map.get(key)?.forEach(cb => { try { cb(p.data, p); } catch { } });
+        this.map.get("*")?.forEach(cb => { try { cb(p.data, p); } catch { } });
     }
     private scheduleReconnect() {
         if (this.dead || !this.opts.autoReconnect) return;
@@ -90,6 +90,6 @@ export class WsClient {
         if (max > 0 && this.attempts >= max) return;
         this.attempts++;
         const delay = base * Math.min(this.attempts, 6);
-        this.timer = setTimeout(() => { if (!this.dead) this.connect().catch(() => {}); }, delay);
+        this.timer = setTimeout(() => { if (!this.dead) this.connect().catch(() => { }); }, delay);
     }
 }

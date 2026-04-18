@@ -32,6 +32,8 @@ curl http://localhost:7878/api
     "runtime": "POST /runtime/download",
     "instances": "GET|POST /instances",
     "system": "GET /system/resources",
+    "modloaders": "GET /modloaders",
+    "close": "POST /close",
     "debug": {
       "client": "GET /debug/download/client",
       "libraries": "GET /debug/download/libraries",
@@ -420,9 +422,77 @@ curl -X POST http://localhost:7878/runtime/download \
   -H "Content-Type: application/json" \
   -d '{
     "version": "1.21.1",
-    "instancePath": "/home/user/.launcher/instances/mi-instancia"
+    "instancePath": "/home/user/.launcher/instances/mi-instancia",
+    "sharedPath": "/home/user/.launcher/shared"
   }'
 ```
+
+**Body:**
+| Campo | Tipo | Default | Descripción |
+|---|---|---|---|
+| `version` | `string` | — | Versión a instalar |
+| `instancePath` | `string` | — | Ruta de la instancia (destino por defecto `instancePath/runtime`) |
+| `sharedPath` | `string \| null` | `null` | Ruta compartida opcional. Si se usa, el runtime se pondrá en `sharedPath/java` y se compartirá con otras instalaciones. |
+
+---
+
+## POST /close
+
+Cerrará de manera elegante (Graceful Tree-Kill Shutdown) todas las instancias activas administradas por el Engine y luego cerrará el Engine de manera segura.
+
+```bash
+curl -X POST http://localhost:7878/close
+```
+
+**Respuesta:**
+
+```json
+{
+  "status": "closing",
+  "killedInstances": 1,
+  "message": "NovaCore-Engine is shutting down cleanly"
+}
+```
+
+---
+
+## API de ModLoaders
+
+Permite administrar rutinas de instalación complejas para modloaders como Forge, Fabric o NeoForge de manera delegada.
+
+### GET /modloaders
+Lista los gestores instalables disponibles.
+```bash
+curl http://localhost:7878/modloaders
+# {"loaders": ["fabric", "forge", "neoforge", "quilt", "legacyfabric", "optifine"]}
+```
+
+### GET /modloaders/versions/:loader/:mcVersion
+Obtiene las versiones disponibles de un cargador para la versión de Minecraft elegida.
+```bash
+curl http://localhost:7878/modloaders/versions/fabric/1.21.1
+```
+
+### POST /modloaders/install
+Inicia la preparación asincrónica y la instalación de un ModLoader para una instancia en específico. Retorna un `sessionId` e inicia descargas en background que emiten eventos.
+
+```bash
+curl -X POST http://localhost:7878/modloaders/install \
+  -H "Content-Type: application/json" \
+  -d '{
+    "loader": "fabric",
+    "loaderVersion": "0.15.7",
+    "minecraftVersion": "1.21.1",
+    "resolvedInstancePath": "/instances/mi-instancia",
+    "resolvedLibrariesPath": "/shared/libraries"
+  }'
+```
+
+### GET /modloaders/state/:instancePath
+Devuelve el JSON de estado actual (qué loader está inyectado actualmente en esa instancia). `instancePath` debe ir codificado en URL (`%2Finstances%2F...`).
+
+### DELETE /modloaders/state/:instancePath
+Elimina los rastros y configuraciones en disco de que existiera un ModLoader instalado para la instancia.
 
 ---
 

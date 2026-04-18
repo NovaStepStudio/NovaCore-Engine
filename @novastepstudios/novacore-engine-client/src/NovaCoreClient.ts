@@ -1,24 +1,24 @@
-import { WsClient }    from "./internal/WsClient.js";
-import { HttpClient }   from "./internal/HttpClient.js";
-import { InstallFlow }  from "./InstallFlow.js";
-import { LaunchFlow }   from "./LaunchFlow.js";
+import { WsClient } from "./internal/WsClient.js";
+import { HttpClient } from "./internal/HttpClient.js";
+import { InstallFlow } from "./InstallFlow.js";
+import { LaunchFlow } from "./LaunchFlow.js";
 import type {
     InstallRequest, LaunchRequest,
     NovaCoreEventName, NovaCoreEvents,
     SessionSnapshot, InstanceInfo, EngineInfo,
 } from "./types/index.js";
-import type { InstallCallbacks }   from "./InstallFlow.js";
+import type { InstallCallbacks } from "./InstallFlow.js";
 import type { LaunchCallbacks, LaunchHandle } from "./LaunchFlow.js";
 
 export interface NovaCoreClientOptions {
     /** URL base del servidor HTTP. @default "http://localhost:7878" */
-    httpUrl?:       string;
+    httpUrl?: string;
     /** URL del servidor WebSocket. @default "ws://localhost:7879" */
-    wsUrl?:         string;
+    wsUrl?: string;
     /** Token de acceso generado por el motor. Obligatorio. */
-    token:          string ;
+    token: string;
     /** Tiempo de espera de peticiones HTTP en ms. @default 30_000 */
-    timeoutMs?:     number | undefined;
+    timeoutMs?: number | undefined;
     /** Reconexión automática del WebSocket si se pierde la conexión. @default true */
     autoReconnect?: boolean | undefined;
 }
@@ -31,40 +31,40 @@ export interface NovaCoreClientOptions {
 */
 export class NovaCoreClient {
     /** @internal */
-    readonly _ws:   WsClient;
+    readonly _ws: WsClient;
     /** @internal */
     readonly _http: HttpClient;
-    
+
     private readonly installFlow: InstallFlow;
-    private readonly launchFlow:  LaunchFlow;
-    
+    private readonly launchFlow: LaunchFlow;
+
     constructor(opts: NovaCoreClientOptions) {
         this._http = new HttpClient(
-            opts.httpUrl  ?? "http://localhost:7878",
+            opts.httpUrl ?? "http://localhost:7878",
             opts.token,
             opts.timeoutMs ?? 30_000,
         );
         this._ws = new WsClient({
-            url:           opts.wsUrl  ?? "ws://localhost:7879",
-            token:         opts.token,
+            url: opts.wsUrl ?? "ws://localhost:7879",
+            token: opts.token,
             autoReconnect: opts.autoReconnect ?? true,
         });
         this.installFlow = new InstallFlow(this._ws, this._http);
-        this.launchFlow  = new LaunchFlow (this._ws, this._http);
+        this.launchFlow = new LaunchFlow(this._ws, this._http);
     }
-    
+
     /**
     * Abre la conexión WebSocket. Se resuelve cuando el motor confirma el acceso.
     * Debe llamarse antes de suscribirse a eventos o realizar peticiones.
     */
     connect(): Promise<void> { return this._ws.connect(); }
-    
+
     /** Cierra el WebSocket de forma permanente. */
     disconnect(): void { this._ws.close(); }
-    
+
     /** Indica si el cliente está conectado actualmente. */
     get isConnected(): boolean { return this._ws.connected; }
-    
+
     /** Suscribe un controlador a un evento específico del motor. */
     on<K extends NovaCoreEventName>(event: K, handler: (data: NovaCoreEvents[K]) => void): this {
         this._ws.on(event, handler); return this;
@@ -85,7 +85,7 @@ export class NovaCoreClient {
     waitFor<K extends NovaCoreEventName>(event: K, timeoutMs?: number): Promise<NovaCoreEvents[K]> {
         return this._ws.waitFor(event, timeoutMs);
     }
-    
+
     /**
     * Instala una versión de Minecraft con callbacks de progreso.
     * 
@@ -95,14 +95,14 @@ export class NovaCoreClient {
     install(req: InstallRequest, callbacks?: InstallCallbacks, timeoutMs?: number): Promise<void> {
         return this.installFlow.run(req, callbacks, timeoutMs);
     }
-    
+
     /** Pausa una sesión de descarga activa. */
-    pauseInstall(sessionId: string): Promise<void>  { return this._http.pauseInstall(sessionId); }
+    pauseInstall(sessionId: string): Promise<void> { return this._http.pauseInstall(sessionId); }
     /** Reanuda una sesión pausada. */
     resumeInstall(sessionId: string): Promise<void> { return this._http.resumeInstall(sessionId); }
     /** Cancela una sesión de descarga. */
     cancelInstall(sessionId: string): Promise<void> { return this._http.cancelInstall(sessionId); }
-    
+
     /**
     * Lanza Minecraft con streaming de logs y callbacks de ciclo de vida.
     * Retorna un {@link LaunchHandle} en cuanto el proceso tiene un PID asignado.
@@ -110,14 +110,24 @@ export class NovaCoreClient {
     launch(req: LaunchRequest, callbacks?: LaunchCallbacks): Promise<LaunchHandle> {
         return this.launchFlow.run(req, callbacks);
     }
-    
+
     /** Mata forzosamente una instancia en ejecución (y sus hijos). */
-    killInstance(launchId: string): Promise<void>      { return this._http.killInstance(launchId); }
+    killInstance(launchId: string): Promise<void> { return this._http.killInstance(launchId); }
     /** Retorna el estado de todas las instancias en ejecución. */
-    getInstances(): Promise<InstanceInfo[]>             { return this._http.getInstances(); }
-    /** Retorna detalles de una instancia específica. */
-    getInstance(launchId: string)                       { return this._http.getInstance(launchId); }
-    
+    getRunningInstances(): Promise<InstanceInfo[]> { return this._http.getRunningInstances(); }
+    /** Retorna detalles de una instancia en ejecución específica. */
+    getRunningInstance(launchId: string) { return this._http.getRunningInstance(launchId); }
+
+    // ── Gestión de Instancias Locales ──────────────────────────────────────────
+    /** Devuelve la lista completa de instancias locales registradas. */
+    getInstancesList() { return this._http.getInstancesList(); }
+    /** Registra y crea una nueva instancia local persistente. */
+    createInstance(req: import("./types/index.js").CreateInstanceRequest) { return this._http.createInstance(req); }
+    /** Actualiza la configuración de una instancia existente. */
+    updateInstance(id: string, req: import("./types/index.js").UpdateInstanceRequest) { return this._http.updateInstance(id, req); }
+    /** Elimina el registro persistente de una instancia. */
+    deleteInstance(id: string) { return this._http.deleteInstance(id); }
+
     /** Consulta una captura (snapshot) de una sesión (vía HTTP). */
     getSession(sessionId: string): Promise<SessionSnapshot | null> {
         return this._http.getSession(sessionId);
@@ -130,7 +140,20 @@ export class NovaCoreClient {
 
     /** Obtiene el resumen total del progreso de todas las instalaciones activas. */
     getSummary() { return this._http.getSummary(); }
-    
+
     /** Información de versión, hardware y optimizaciones recomendadas. */
     getEngineInfo(): Promise<EngineInfo> { return this._http.getEngineInfo(); }
+
+    // ── ModLoaders ──────────────────────────────────────────────────────────
+    getModLoaders(): Promise<{ loaders: string[] }> { return this._http.getModLoaders(); }
+    getModLoaderVersions(loader: string, mcVersion: string) { return this._http.getModLoaderVersions(loader, mcVersion); }
+    installModLoader(req: import("./types/index.js").ModLoaderRequest) { return this._http.installModLoader(req); }
+    getModLoaderState(instancePath: string) { return this._http.getModLoaderState(instancePath); }
+    deleteModLoaderState(instancePath: string) { return this._http.deleteModLoaderState(instancePath); }
+
+    // ── Runtime ─────────────────────────────────────────────────────────────
+    downloadRuntime(version: string, instancePath: string, sharedPath?: string) { return this._http.downloadRuntime(version, instancePath, sharedPath); }
+
+    // ── System ──────────────────────────────────────────────────────────────
+    closeEngine(): Promise<void> { return this._http.close(); }
 }

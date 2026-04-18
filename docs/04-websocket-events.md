@@ -422,6 +422,26 @@ Mensajes internos del engine. Solo aparecen si pasaste `debug: true` en el reque
 }
 ```
 
+### `recovery_state`
+
+Se emite al conectarse, enviando una lista de descargas reanudables (sesiones previas que quedaron interruptidas).
+
+```json
+{
+  "event": "recovery_state",
+  "data": {
+    "count": 1,
+    "snapshots": [
+      {
+        "sessionId": "session-1710000000000-1",
+        "status": "paused",
+        "overallPercent": 40
+      }
+    ]
+  }
+}
+```
+
 ---
 
 ## Desconexión

@@ -1,38 +1,32 @@
-# NovaCore Engine Client - Ejemplos 🚀
+# NovaCore-Engine: Ejemplos Completos (JavaScript)
 
-Esta carpeta contiene scripts de ejemplo para demostrar cómo integrar NovaCore Engine en tus aplicaciones Node.js o Electron.
+Estos ejemplos estan creados para ejecutarse usando Node nativamente asegurandose de abarcar el potencial exacto de NovaCore-Engine. Cada script se enfoca en un area especifica. Importan las declaraciones JSDoc para que tu editor proporcione auto-completado nativo.
 
-## Requisitos previos
-
-1.  **Motor Compilado**: Asegúrate de haber compilado el motor Java. El JAR debe estar en `core/build/libs/novacore-engine.jar` (o ajusta la ruta en los scripts).
-2.  **Java 21**: El motor requiere Java 21 o superior instalado en el sistema.
-3.  **Dependencias**: Instala las dependencias del cliente (si estás en la raíz del repositorio, ejecuta `npm install`).
-
-## Cómo ejecutar los ejemplos
-
-Desde la raíz del repositorio, utiliza `node` para ejecutar cualquier ejemplo:
-
-```bash
-# Instalación de Vanilla 1.21.4
-node @novastepstudios/novacore-engine-client/example/install-vanilla.js
-
-# Lanzamiento de Vanilla 1.21.4 (después de instalar)
-node @novastepstudios/novacore-engine-client/example/launch-vanilla.js
-
-# Instalación de Fabric
-node @novastepstudios/novacore-engine-client/example/install-fabric.js
-
-# Ciclo de vida completo (Recomendado para entender el flujo)
-node @novastepstudios/novacore-engine-client/example/full-lifecycle.js
-```
-
-## Contenido de los ejemplos
-
-- 📂 `install-*.js`: Demuestra cómo usar `client.install()` con callbacks de progreso detallados y barra de progreso en consola.
-- 📂 `launch-*.js`: Muestra cómo iniciar el juego, capturar logs en tiempo real y manejar el cierre/crash del proceso.
-- 📂 `full-lifecycle.js`: El ejemplo más completo. Inicia el proceso del motor, realiza una instalación, lanza el juego y apaga el motor limpiamente al finalizar.
+Te recomendamos analizarlos uno a uno para presenciar la integracion.
 
 ---
 
-> [!TIP]
-> Todos los ejemplos utilizan rutas relativas a esta carpeta para crear el directorio `.minecraft`. Puedes borrarlos en cualquier momento para limpiar el espacio.
+### 1. 01-instances-crud.js
+El manual del Manejador de Instancias. Este script te muestra como crear un perfil (seteando la version, RAM y el tipo de Recolector de Basura / GC), luego lista todas las instancias guardadas, le actualiza la RAM mediante PATCH y finalmente purga el registro usando la API en caliente.
+
+### 2. 02-shared-cache-install.js
+Muestra la mayor ventaja de NovaCore. Instala Minecraft en una instancia "A", luego inmediatamente lo instala en una instancia "B" apuntando al mismo sharedPath. Veras como en la consola la segunda vez el indicador SkippedFiles domina, evitando re-descargar los assets/libs/java.
+
+### 3. 03-modloader-orchestration.js
+NovaCore gestiona los mods. Revisa este ejemplo para comunicarte con el ModLoaderOrchestrator. Pide las versiones remotas compatibles con Forge/Fabric en un segundo plano e inyecta asincronamente el cliente y las librerias a la instancia elegida. 
+
+### 4. 04-advanced-launch.js
+Demuestra como exprimir el maximo rendimiento. Evalua los procesadores instalados y tu Memoria RAM viva ejecutando el API (system/resources). Luego le pide a NovaCore arrancar la instancia usando esos parametros y variables especiales de entorno.
+
+### 5. 05-full-telemetry-ws.js
+Intervencion de sistema. Enchufa al WebSocket conectando un listener puro (onAny), mostrandote toda decision del backend en tiempo real (Descargas interceptadas, recuperacion de descargas pausadas con recovery_state, y logs).
+
+### 6. 06-graceful-tree-kill.js
+El ejemplo del cierre definitivo. Usando closeEngine, limpia el arbol de procesos para asegurar la liberacion total de RAM del sistema asincronamente.
+
+---
+### Para ejecutar
+Estos ejemplos son validos usando unicamente el ecosistema basico de node:
+```bash
+node 02-shared-cache-install.js
+```
