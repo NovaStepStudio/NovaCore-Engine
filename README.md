@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="Docs/NovaCore-Engine.png" alt="NovaCore-Engine" width="500"/>
+  <img src="docs/NovaCore-Engine.png" alt="NovaCore-Engine" width="500"/>
   <h1>NovaCore-Engine</h1>
   <p><strong>El motor de backend definitivo para launchers de Minecraft Java</strong></p>
   <p>
