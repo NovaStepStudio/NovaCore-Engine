@@ -10,12 +10,13 @@ async function main() {
 
     try {
         const installReq = {
-            version: "1.21.1",
-            instancePath: config.instancesDir + "/Stepnicka012",
-            sharedPath: config.sharedDir,
-            isInstance: true,
+            version: "1.12.2",
+            instancePath: config.instancesDir,
+            // sharedPath: config.sharedDir,
+            // isInstance: true,
+            
             download: { client: true, libraries: true, assets: true, natives: true, jvm: true },
-            verifySHA1: true
+            verifySHA1: true,
         };
 
         await client.install(installReq, {

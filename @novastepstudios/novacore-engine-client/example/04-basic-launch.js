@@ -11,14 +11,15 @@ async function main() {
         instancesDir: config.instancesDir,
         ...config.engineOptions
     });
-
     try {
-        console.log("\n🎮 Lanzando Minecraft 1.21.1...");
+        console.log("\n🎮 Lanzando Minecraft...");
 
         const handle = await client.launch({
-            version: "1.21.1",
-            instancePath: config.instancesDir + "/Stepnicka012",
-            sharedPath: config.sharedDir,
+            version: "1.12.2",
+            instancePath: config.instancesDir,
+            // javaPath: "C:/Program Files/Java/jre1.8.0_491/bin/javaw.exe",
+            // sharedPath: config.sharedDir,
+            // javaPath: 'C:/Program Files/Java/jre1.8.0_491/bin/javaw.exe',
             auth: {
                 username: "NovaPlayer",
                 uuid: "00000000-0000-0000-0000-000000000000",

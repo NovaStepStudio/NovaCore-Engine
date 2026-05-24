@@ -1,0 +1,139 @@
+======================================================================
+  NovaCore-Engine — Game Log
+  Launch ID  : will-be-assigned
+  Started    : 2026-05-24T15:49:01.843842849
+======================================================================
+
+----------------------------------------------------------------------
+  MINECRAFT CONFIGURATION
+----------------------------------------------------------------------
+  Version        : 1.12.2
+  Vanilla Base   : 1.12.2
+  Main Class     : net.minecraft.client.main.Main
+  Game Dir       : /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/game
+  Assets Dir     : /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/assets
+  Libraries Dir  : /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries
+  Asset Index    : 1.12
+
+----------------------------------------------------------------------
+  JVM CONFIGURATION
+----------------------------------------------------------------------
+  Java Exec   : /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/runtime/java-8u202/bin/java
+  Min Memory  : 512 MB
+  Max Memory  : 2048 MB
+  GC Preset   : none
+  GPU Pref    : none
+  HW Accel    : null
+
+----------------------------------------------------------------------
+  CLASSPATH LIBRARIES
+----------------------------------------------------------------------
+  Total entries: 32
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/mojang/patchy/1.3.9/patchy-1.3.9.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/oshi-project/oshi-core/1.1/oshi-core-1.1.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/java/dev/jna/jna/4.4.0/jna-4.4.0.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/java/dev/jna/platform/3.4.0/platform-3.4.0.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/ibm/icu/icu4j-core-mojang/51.2/icu4j-core-mojang-51.2.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/sf/jopt-simple/jopt-simple/5.0.3/jopt-simple-5.0.3.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/codecjorbis/20101023/codecjorbis-20101023.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/codecwav/20101023/codecwav-20101023.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/libraryjavasound/20101123/libraryjavasound-20101123.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/librarylwjglopenal/20100824/librarylwjglopenal-20100824.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/soundsystem/20120107/soundsystem-20120107.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/io/netty/netty-all/4.1.9.Final/netty-all-4.1.9.Final.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/google/guava/guava/21.0/guava-21.0.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/commons/commons-lang3/3.5/commons-lang3-3.5.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/commons-io/commons-io/2.5/commons-io-2.5.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/commons-codec/commons-codec/1.10/commons-codec-1.10.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/java/jinput/jinput/2.0.5/jinput-2.0.5.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/java/jutils/jutils/1.0.0/jutils-1.0.0.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/google/code/gson/gson/2.8.0/gson-2.8.0.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/mojang/authlib/1.5.25/authlib-1.5.25.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/mojang/realms/1.10.22/realms-1.10.22.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/commons/commons-compress/1.8.1/commons-compress-1.8.1.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/httpcomponents/httpclient/4.3.3/httpclient-4.3.3.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/httpcomponents/httpcore/4.3.2/httpcore-4.3.2.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/it/unimi/dsi/fastutil/7.1.0/fastutil-7.1.0.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/logging/log4j/log4j-api/2.8.1/log4j-api-2.8.1.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/logging/log4j/log4j-core/2.8.1/log4j-core-2.8.1.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/lwjgl/lwjgl/lwjgl/2.9.4-nightly-20150209/lwjgl-2.9.4-nightly-20150209.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/lwjgl/lwjgl/lwjgl_util/2.9.4-nightly-20150209/lwjgl_util-2.9.4-nightly-20150209.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/mojang/text2speech/1.10.3/text2speech-1.10.3.jar
+    [OK] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/versions/1.12.2/1.12.2.jar
+
+----------------------------------------------------------------------
+  NATIVE LIBRARIES
+----------------------------------------------------------------------
+  Dir     : /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/versions/1.12.2/natives
+  Total   : 7
+    libfliteWrapper.so
+    libjinput-linux.so
+    libjinput-linux64.so
+    liblwjgl.so
+    liblwjgl64.so
+    libopenal.so
+    libopenal64.so
+
+----------------------------------------------------------------------
+  FULL LAUNCH COMMAND (28 args)
+----------------------------------------------------------------------
+  [  0] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/runtime/java-8u202/bin/java
+  [  1] -Xms512m
+  [  2] -Xmx2048m
+  [  3] -Dminecraft.telemetry.disabled=true
+  [  4] -Djava.library.path=/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/versions/1.12.2/natives
+  [  5] -Dminecraft.launcher.brand=StepLauncher
+  [  6] -Dminecraft.launcher.version=dev
+  [  7] -cp
+  [  8] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/mojang/patchy/1.3.9/patchy-1.3.9.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/oshi-project/oshi-core/1.1/oshi-core-1.1.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/java/dev/jna/jna/4.4.0/jna-4.4.0.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/java/dev/jna/platform/3.4.0/platform-3.4.0.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/ibm/icu/icu4j-core-mojang/51.2/icu4j-core-mojang-51.2.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/sf/jopt-simple/jopt-simple/5.0.3/jopt-simple-5.0.3.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/codecjorbis/20101023/codecjorbis-20101023.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/codecwav/20101023/codecwav-20101023.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/libraryjavasound/20101123/libraryjavasound-20101123.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/librarylwjglopenal/20100824/librarylwjglopenal-20100824.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/paulscode/soundsystem/20120107/soundsystem-20120107.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/io/netty/netty-all/4.1.9.Final/netty-all-4.1.9.Final.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/google/guava/guava/21.0/guava-21.0.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/commons/commons-lang3/3.5/commons-lang3-3.5.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/commons-io/commons-io/2.5/commons-io-2.5.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/commons-codec/commons-codec/1.10/commons-codec-1.10.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/java/jinput/jinput/2.0.5/jinput-2.0.5.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/net/java/jutils/jutils/1.0.0/jutils-1.0.0.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/google/code/gson/gson/2.8.0/gson-2.8.0.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/mojang/authlib/1.5.25/authlib-1.5.25.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/mojang/realms/1.10.22/realms-1.10.22.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/commons/commons-compress/1.8.1/commons-compress-1.8.1.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/httpcomponents/httpclient/4.3.3/httpclient-4.3.3.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/httpcomponents/httpcore/4.3.2/httpcore-4.3.2.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/it/unimi/dsi/fastutil/7.1.0/fastutil-7.1.0.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/logging/log4j/log4j-api/2.8.1/log4j-api-2.8.1.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/apache/logging/log4j/log4j-core/2.8.1/log4j-core-2.8.1.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/lwjgl/lwjgl/lwjgl/2.9.4-nightly-20150209/lwjgl-2.9.4-nightly-20150209.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/org/lwjgl/lwjgl/lwjgl_util/2.9.4-nightly-20150209/lwjgl_util-2.9.4-nightly-20150209.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/libraries/com/mojang/text2speech/1.10.3/text2speech-1.10.3.jar:/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/versions/1.12.2/1.12.2.jar
+  [  9] net.minecraft.client.main.Main
+  [ 10] --username
+  [ 11] NovaPlayer
+  [ 12] --version
+  [ 13] 1.12.2
+  [ 14] --gameDir
+  [ 15] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/game
+  [ 16] --assetsDir
+  [ 17] /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/assets
+  [ 18] --assetIndex
+  [ 19] 1.12
+  [ 20] --uuid
+  [ 21] 00000000-0000-0000-0000-000000000000
+  [ 22] --accessToken
+  [ 23] offline-token
+  [ 24] --userType
+  [ 25] offline
+  [ 26] --versionType
+  [ 27] release
+
+----------------------------------------------------------------------
+  VERSION MANIFEST
+----------------------------------------------------------------------
+  ID          : 1.12.2
+  Type        : release
+  Main Class  : net.minecraft.client.main.Main
+  Inherits    : none
+  Libraries   : 39 declared
+
+======================================================================
+  GAME OUTPUT FOLLOWS
+======================================================================
+
+[15:49:06.049] [STDOUT] [15:49:06] [Client thread/INFO]: Setting user: NovaPlayer
+[15:49:12.461] [STDOUT] [15:49:12] [Client thread/INFO]: LWJGL Version: 2.9.4
+[15:49:13.842] [STDOUT] [15:49:13] [Client thread/INFO]: Reloading ResourceManager: Default
+[15:49:14.505] [STDOUT] [15:49:14] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[15:49:14.749] [STDOUT] [15:49:14] [Thread-3/INFO]: Initializing LWJGL OpenAL
+[15:49:14.750] [STDOUT] [15:49:14] [Thread-3/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[15:49:14.956] [STDOUT] [15:49:14] [Thread-3/INFO]: OpenAL initialized.
+[15:49:15.131] [STDOUT] [15:49:15] [Sound Library Loader/INFO]: Sound engine started
+[15:49:19.175] [STDOUT] [15:49:19] [Client thread/INFO]: Created: 1024x512 textures-atlas
+[15:49:22.428] [STDOUT] [15:49:22] [Client thread/INFO]: Narrator library successfully loaded
+[15:49:25.023] [STDOUT] [15:49:25] [Client thread/INFO]: Stopping!
+[15:49:25.030] [STDOUT] [15:49:25] [Client thread/INFO]: SoundSystem shutting down...
+[15:49:25.172] [STDOUT] [15:49:25] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+
+----------------------------------------------------------------------
+  Log closed: 2026-05-24T15:49:25.968364746
+----------------------------------------------------------------------

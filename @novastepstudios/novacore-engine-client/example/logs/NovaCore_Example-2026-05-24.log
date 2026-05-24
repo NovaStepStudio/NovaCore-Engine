@@ -1,0 +1,27 @@
+[2026-05-24 15:48:58.777] [INFO] [CoreLogger] Logger initialized (pid=233553, queueLimit=1500)
+[2026-05-24 15:48:58.877] [INFO] [Core] Initializing novacore-engine (version=dev)
+[2026-05-24 15:48:58.884] [INFO] [Core] Resolved instances directory (path=/home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft)
+[2026-05-24 15:48:59.091] [INFO] [EventBroadcaster] WebSocket started on port 7879
+[2026-05-24 15:49:00.611] [INFO] [DownloadManager] DownloadManager initialized: threads=2 httpConcurrency=4
+[2026-05-24 15:49:00.668] [INFO] [CoreHttpServer] Routes registered (all protected by access token)
+[2026-05-24 15:49:00.669] [INFO] [CoreHttpServer] HTTP server started on port 7878
+[2026-05-24 15:49:00.671] [INFO] [Core] HTTP server listening (url=http://localhost:7878)
+[2026-05-24 15:49:00.672] [INFO] [Core] WS broadcaster listening (url=ws://localhost:7879)
+[2026-05-24 15:49:00.672] [INFO] [Core] Worker threads configured (limit=2)
+[2026-05-24 15:49:00.672] [INFO] [Core] Engine version loaded (version=dev)
+[2026-05-24 15:49:00.672] [INFO] [Core] NovaCore-Engine initialization completed successfully
+[2026-05-24 15:49:01.080] [INFO] [EventBroadcaster] WS authenticated client: /127.0.0.1:43488
+[2026-05-24 15:49:01.360] [INFO] [MinecraftLauncher] Launch requested: launch-1779648541333-1 v=1.12.2 user=NovaPlayer
+[2026-05-24 15:49:01.407] [INFO] [MinecraftLauncher] [launch-1779648541333-1] Vanilla base: 1.12.2
+[2026-05-24 15:49:01.534] [INFO] [MinecraftVerifier] Verification OK for version 1.12.2 (vanilla base: 1.12.2)
+[2026-05-24 15:49:01.535] [INFO] [MinecraftLauncher] [launch-1779648541333-1] Java: /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/.minecraft/runtime/java-8u202/bin/java
+[2026-05-24 15:49:01.814] [INFO] [MinecraftLauncher] [launch-1779648541333-1] Launching: mainClass=net.minecraft.client.main.Main totalArgs=28
+[2026-05-24 15:49:01.840] [INFO] [GameLogManager] Game log session started: /home/stepnicka012/Escritorio/Workflow/NovaCore-Engine/@novastepstudios/novacore-engine-client/example/logs/logs-game/game-launch-1779648541333-1-2026-05-24_15-49-01.log (memLimit=1500)
+[2026-05-24 15:49:01.934] [INFO] [MinecraftLauncher] [launch-1779648541333-1] PID=233600
+[2026-05-24 15:49:25.969] [INFO] [GameLogManager] Game log closed: game-launch-1779648541333-1-2026-05-24_15-49-01.log (dropped=0)
+[2026-05-24 15:49:25.984] [INFO] [MinecraftLauncher] [launch-1779648541333-1] Exited: 0 (runtime=24021ms)
+[2026-05-24 15:49:25.998] [INFO] [CloseHandler] Close requested — running instances: 0
+[2026-05-24 15:49:26.022] [INFO] [EventBroadcaster] WS client disconnected: /127.0.0.1:43488 (code=1006)
+[2026-05-24 15:49:26.314] [INFO] [CloseHandler] Executing shutdown callback
+[2026-05-24 15:49:26.315] [INFO] [Core] Shutting down via /close...
+[2026-05-24 15:49:26.437] [INFO] [Core] Stopped.

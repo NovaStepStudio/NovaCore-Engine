@@ -1,10 +1,6 @@
 import { NovaCoreEngine } from "../dist/index.js";
 import { config } from "./00-config.js";
 
-/**
- * EJEMPLO 05: Monitor de Eventos en Tiempo Real
- * Suscripción a eventos globales del motor para crear sistemas de telemetría o logs.
- */
 async function main() {
     const client = await NovaCoreEngine.start({
         jar: config.jarPath,
@@ -12,31 +8,24 @@ async function main() {
         ...config.engineOptions
     });
 
-    console.log("📡 Escuchando todos los eventos del WebSocket...");
-
-    // Escuchar cualquier evento
-    client.onAny((event, data) => {
-        console.log(`[WS EVENT] ${event}:`, JSON.stringify(data).slice(0, 80) + "...");
+    client.on("connected", (d) => console.log("Connected:", d.message));
+    client.on("install_step", (d) => console.log(`[${d.sessionId}] Step: ${d.step}`));
+    client.on("session_progress", (d) => {
+        process.stdout.write(`\rProgress: ${d.overallPercent}% (${d.completedFiles}/${d.totalFiles})`);
+    });
+    client.on("launch_started", (d) => console.log(`\nGame started (PID: ${d.pid})`));
+    client.on("launch_exited", (d) => console.log(`Game exited (code: ${d.exitCode}, duration: ${d.durationMs}ms)`));
+    client.on("game_log", (l) => {
+        if (l.level === "ERROR" || l.level === "FATAL") {
+            console.log(`[${l.level}] ${l.message}`);
+        }
+    });
+    client.on("engine_unreachable", (d) => {
+        console.error(`\nEngine unreachable! Reason: ${d.reason}`);
     });
 
-    // Escuchar eventos específicos con tipado (si usas TS)
-    client.on("launch_started", (d) => {
-        console.log(`🚀 NUEVA INSTANCIA: ${d.launchId} (PID ${d.pid})`);
-    });
-
-    client.on("game_crash", (d) => {
-        console.error(`💥 CRASH DETECTADO: ${d.reason} (Código ${d.exitCode})`);
-    });
-
-    console.log("\nEjecuta otra instancia o una instalación para ver los eventos fluir.");
-    console.log("Presiona Ctrl+C para salir.");
-
-    try {
-        await new Promise((resolve) => process.once("SIGINT", resolve));
-    } finally {
-        await client.closeEngine();
-        client.disconnect();
-    }
+    console.log("Listening for events. Run another example to see output.");
+    await new Promise(() => {});
 }
 
 main().catch(console.error);

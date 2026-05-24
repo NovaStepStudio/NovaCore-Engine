@@ -37,11 +37,7 @@ async function main() {
         await handle.exited;
     } catch (e) {
         console.error("Error:", e.message);
-    } finally {
-        await client.closeEngine();
-        client.disconnect();
     }
 }
 
 main().catch(console.error);
-
