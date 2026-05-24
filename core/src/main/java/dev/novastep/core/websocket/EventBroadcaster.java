@@ -1,6 +1,6 @@
 package dev.novastep.core.websocket;
 
-import com.google.gson.Gson;
+import dev.novastep.core.json.Json;
 import dev.novastep.core.log.CoreLogger;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
@@ -14,8 +14,7 @@ import java.util.Map;
 
 public class EventBroadcaster extends WebSocketServer {
 
-    private static final Gson   GSON = new Gson();
-    private static final String LOG  = "EventBroadcaster";
+    private static final String LOG = "EventBroadcaster";
 
     private final String accessToken;
     private volatile dev.novastep.core.downloader.DownloadManager downloadManager = null;
@@ -27,8 +26,8 @@ public class EventBroadcaster extends WebSocketServer {
         setConnectionLostTimeout(60);
     }
 
-    public void setDownloadManager(dev.novastep.core.downloader.DownloadManager dm) {
-        this.downloadManager = dm;
+    public void setDownloadManager(dev.novastep.core.downloader.DownloadManager downloadManager) {
+        this.downloadManager = downloadManager;
     }
 
     @Override
@@ -39,39 +38,38 @@ public class EventBroadcaster extends WebSocketServer {
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         String token = extractQueryParam(handshake.getResourceDescriptor(), "token");
-
         if (token == null || token.isBlank()) {
             token = handshake.getFieldValue("X-Access-Token");
         }
 
         if (!accessToken.equals(token)) {
-            CoreLogger.get().warn(LOG, "WS rechazado — token inválido desde " + conn.getRemoteSocketAddress());
+            CoreLogger.get().warn(LOG, "WS rejected: invalid token from " + conn.getRemoteSocketAddress());
             conn.close(1008, "Unauthorized");
             return;
         }
 
-        CoreLogger.get().info(LOG, "WS cliente autenticado: " + conn.getRemoteSocketAddress());
+        CoreLogger.get().info(LOG, "WS authenticated client: " + conn.getRemoteSocketAddress());
         sendTo(conn, "connected", map(
                 "message", "novacore-engine ready",
                 "version", dev.novastep.core.CoreVersion.get()));
 
         if (downloadManager != null) {
-            java.util.List<java.util.Map<String, Object>> snapshots = downloadManager.getRecoverySnapshots();
+            var snapshots = downloadManager.getRecoverySnapshots();
             if (!snapshots.isEmpty()) {
                 emitRecoveryState(conn, snapshots);
-                CoreLogger.get().info(LOG, "Recovery state enviado: " + snapshots.size() + " sesiones activas");
+                CoreLogger.get().info(LOG, "Recovery state sent: " + snapshots.size() + " active sessions");
             }
         }
     }
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-        CoreLogger.get().info(LOG, "WS cliente desconectado: " + conn.getRemoteSocketAddress()
-            + " (code=" + code + ")");
+        CoreLogger.get().info(LOG, "WS client disconnected: " + conn.getRemoteSocketAddress() + " (code=" + code + ")");
     }
 
     @Override
-    public void onMessage(WebSocket conn, String message) {}
+    public void onMessage(WebSocket conn, String message) {
+    }
 
     @Override
     public void onError(WebSocket conn, Exception ex) {
@@ -79,10 +77,7 @@ public class EventBroadcaster extends WebSocketServer {
     }
 
     public void emit(String eventType, Object payload) {
-        Map<String, Object> envelope = new HashMap<>();
-        envelope.put("event", eventType);
-        envelope.put("data",  payload);
-        broadcast(GSON.toJson(envelope));
+        broadcastJson(envelope(eventType, payload));
     }
 
     public void emitDownloadStart(String sessionId, String category, String filename, long totalBytes) {
@@ -92,14 +87,14 @@ public class EventBroadcaster extends WebSocketServer {
     public void emitDownloadProgress(String sessionId, String category, String filename, long downloaded, long total) {
         int percent = total > 0 ? (int) (downloaded * 100L / total) : 0;
         emit("download_progress", map(
-            "sessionId", sessionId, "category", category, "file", filename,
-            "downloaded", downloaded, "total", total, "percent", percent));
+                "sessionId", sessionId, "category", category, "file", filename,
+                "downloaded", downloaded, "total", total, "percent", percent));
     }
 
     public void emitDownloadComplete(String sessionId, String category, String filename, long bytes, boolean skipped) {
         emit("download_complete", map(
-            "sessionId", sessionId, "category", category, "file", filename,
-            "bytes", bytes, "skipped", skipped));
+                "sessionId", sessionId, "category", category, "file", filename,
+                "bytes", bytes, "skipped", skipped));
     }
 
     public void emitDownloadError(String sessionId, String category, String filename, String error) {
@@ -110,9 +105,9 @@ public class EventBroadcaster extends WebSocketServer {
     public void emitSessionProgress(String sessionId, int completed, int skipped, int total, int percent,
                                     long downloadedBytes, long totalBytes) {
         emit("session_progress", map(
-            "sessionId", sessionId, "completedFiles", completed, "skippedFiles", skipped,
-            "totalFiles", total, "overallPercent", percent,
-            "downloadedBytes", downloadedBytes, "totalBytes", totalBytes));
+                "sessionId", sessionId, "completedFiles", completed, "skippedFiles", skipped,
+                "totalFiles", total, "overallPercent", percent,
+                "downloadedBytes", downloadedBytes, "totalBytes", totalBytes));
     }
 
     public void emitSessionCompleted(String sessionId, int totalFiles, long totalBytes) {
@@ -126,10 +121,12 @@ public class EventBroadcaster extends WebSocketServer {
     }
 
     public void emitSha1Check(String sessionId, String filename, boolean passed, String expected, String computed) {
-        if (!passed) CoreLogger.get().warn(LOG, "SHA1 mismatch [" + sessionId + "] " + filename);
+        if (!passed) {
+            CoreLogger.get().warn(LOG, "SHA1 mismatch [" + sessionId + "] " + filename);
+        }
         emit("sha1_check", map(
-            "sessionId", sessionId, "file", filename,
-            "passed", passed, "expected", expected, "computed", computed));
+                "sessionId", sessionId, "file", filename,
+                "passed", passed, "expected", expected, "computed", computed));
     }
 
     public void emitManifestResolved(String sessionId, String version) {
@@ -142,56 +139,51 @@ public class EventBroadcaster extends WebSocketServer {
         emit("debug", map("sessionId", sessionId, "message", message));
     }
 
-    public void emitGameLogWarn(String launchId, String line, String logger) {
-        emit("game_log_warn", map("launchId", launchId, "line", line, "logger", logger));
-    }
-
-    public void emitGameLogError(String launchId, String line, String logger) {
-        emit("game_log_error", map("launchId", launchId, "line", line, "logger", logger));
-    }
-
-    public void emitGameLogFatal(String launchId, String line, String logger) {
-        emit("game_log_fatal", map("launchId", launchId, "line", line, "logger", logger));
-    }
-
-    public void emitGameCrash(String launchId, int exitCode, String reason) {
-        CoreLogger.get().error(LOG, "Game crash [" + launchId + "] exitCode=" + exitCode + " reason=" + reason);
-        emit("game_crash", map("launchId", launchId, "exitCode", exitCode, "reason", reason));
-    }
-
-    public void emitInstanceStarted(String launchId, String version, long pid) {
-        emit("instance_started", map("launchId", launchId, "version", version, "pid", pid));
-    }
-
-    public void emitInstanceStopped(String launchId, int exitCode, boolean normal, long durationMs) {
-        emit("instance_stopped", map(
-            "launchId", launchId, "exitCode", exitCode,
-            "normal", normal, "durationMs", durationMs));
-    }
-
-    public void emitRecoveryState(org.java_websocket.WebSocket conn,
-                                   java.util.List<java.util.Map<String, Object>> snapshots) {
-        Map<String, Object> envelope = new HashMap<>();
-        envelope.put("event", "recovery_state");
-        envelope.put("data",  Map.of("snapshots", snapshots, "count", snapshots.size()));
-        conn.send(GSON.toJson(envelope));
+    public void emitRecoveryState(WebSocket conn, java.util.List<java.util.Map<String, Object>> snapshots) {
+        sendJson(conn, envelope("recovery_state", Map.of("snapshots", snapshots, "count", snapshots.size())));
     }
 
     private void sendTo(WebSocket conn, String eventType, Object payload) {
+        sendJson(conn, envelope(eventType, payload));
+    }
+
+    private void broadcastJson(Object payload) {
+        try {
+            broadcast(Json.write(payload));
+        } catch (Exception ex) {
+            CoreLogger.get().error(LOG, "Failed to serialize WS payload", ex);
+        }
+    }
+
+    private void sendJson(WebSocket conn, Object payload) {
+        try {
+            conn.send(Json.write(payload));
+        } catch (Exception ex) {
+            CoreLogger.get().error(LOG, "Failed to serialize WS payload", ex);
+        }
+    }
+
+    private static Map<String, Object> envelope(String eventType, Object payload) {
         Map<String, Object> envelope = new HashMap<>();
         envelope.put("event", eventType);
-        envelope.put("data",  payload);
-        conn.send(GSON.toJson(envelope));
+        envelope.put("data", payload);
+        return envelope;
     }
 
     private static String extractQueryParam(String resource, String key) {
-        if (resource == null) return null;
+        if (resource == null) {
+            return null;
+        }
         int q = resource.indexOf('?');
-        if (q < 0) return null;
+        if (q < 0) {
+            return null;
+        }
         String query = resource.substring(q + 1);
         for (String pair : query.split("&")) {
             int eq = pair.indexOf('=');
-            if (eq < 0) continue;
+            if (eq < 0) {
+                continue;
+            }
             String k = pair.substring(0, eq);
             if (k.equals(key)) {
                 return URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8);
@@ -201,9 +193,13 @@ public class EventBroadcaster extends WebSocketServer {
     }
 
     private static Map<String, Object> map(Object... kvPairs) {
-        if (kvPairs.length % 2 != 0) throw new IllegalArgumentException("Deben ser pares clave-valor");
-        Map<String, Object> m = new HashMap<>();
-        for (int i = 0; i < kvPairs.length; i += 2) m.put((String) kvPairs[i], kvPairs[i + 1]);
-        return m;
+        if (kvPairs.length % 2 != 0) {
+            throw new IllegalArgumentException("Key/value pairs required");
+        }
+        Map<String, Object> map = new HashMap<>();
+        for (int i = 0; i < kvPairs.length; i += 2) {
+            map.put((String) kvPairs[i], kvPairs[i + 1]);
+        }
+        return map;
     }
 }

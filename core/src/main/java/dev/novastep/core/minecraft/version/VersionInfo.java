@@ -1,11 +1,10 @@
 package dev.novastep.core.minecraft.version;
 
+import dev.novastep.core.minecraft.RuleEvaluator;
+
 import java.util.List;
 import java.util.Map;
 
-/**
- * Detailed information for a specific Minecraft version (version.json).
- */
 public class VersionInfo {
 
     public String id;
@@ -43,33 +42,12 @@ public class VersionInfo {
         public List<Rule> rules;
 
         public boolean isAllowed() {
-            if (rules == null || rules.isEmpty()) return true;
-            boolean result = false;
-            for (Rule rule : rules) {
-                boolean ruleMatches;
-                if (rule.os == null) {
-                    ruleMatches = true;
-                } else {
-                    String osName = rule.os.get("name");
-                    ruleMatches = osName != null && osName.equals(currentOsName());
-                }
-                if (ruleMatches) {
-                    result = "allow".equals(rule.action);
-                }
-            }
-            return result;
+            return RuleEvaluator.isLibraryAllowed(rules);
         }
 
         public String getNativeClassifier() {
             if (natives == null) return null;
-            return natives.get(currentOsName());
-        }
-
-        private static String currentOsName() {
-            String os = System.getProperty("os.name", "").toLowerCase();
-            if (os.contains("win"))  return "windows";
-            if (os.contains("mac"))  return "osx";
-            return "linux";
+            return natives.get(RuleEvaluator.currentOsName());
         }
 
         public static class LibDownloads {

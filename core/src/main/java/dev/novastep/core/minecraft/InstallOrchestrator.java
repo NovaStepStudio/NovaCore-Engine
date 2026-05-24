@@ -5,10 +5,11 @@ import dev.novastep.core.minecraft.instance.InstanceConfigStore;
 import dev.novastep.core.minecraft.instance.InstanceTechnicalMetadataStore;
 import dev.novastep.core.minecraft.instance.LegacyInstanceMetadataMigrator;
 
-import com.google.gson.Gson;
+
 import dev.novastep.core.downloader.DownloadManager;
 import dev.novastep.core.downloader.model.DownloadResult;
 import dev.novastep.core.downloader.model.DownloadTask;
+import dev.novastep.core.json.Json;
 import dev.novastep.core.log.CoreLogger;
 import dev.novastep.core.minecraft.manifest.ManifestClient;
 import dev.novastep.core.minecraft.manifest.VersionMerger;
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
 public class InstallOrchestrator {
 
     private static final String LOG = "InstallOrchestrator";
-    private static final Gson GSON = new Gson();
+    // JSON deserialization via Jackson (Json.java) — Gson removed
     private static final int MAX_MODULE_RETRIES = 2;
 
     private final DownloadManager downloadManager;
@@ -369,13 +370,13 @@ public class InstallOrchestrator {
         VersionInfo loaderInfo;
         try {
             String raw = Files.readString(versionFile, StandardCharsets.UTF_8);
-            loaderInfo = GSON.fromJson(raw, VersionInfo.class);
+            loaderInfo = Json.read(raw, VersionInfo.class);
             if (loaderInfo.inheritsFrom != null && !loaderInfo.inheritsFrom.isBlank()) {
                 Path parentFile = instancePath.resolve("versions")
                         .resolve(loaderInfo.inheritsFrom).resolve(loaderInfo.inheritsFrom + ".json");
                 if (Files.exists(parentFile)) {
                     String parentRaw = Files.readString(parentFile, StandardCharsets.UTF_8);
-                    VersionInfo parent = GSON.fromJson(parentRaw, VersionInfo.class);
+                    VersionInfo parent = Json.read(parentRaw, VersionInfo.class);
                     loaderInfo = VersionMerger.merge(parent, loaderInfo);
                 }
             }
@@ -464,7 +465,7 @@ public class InstallOrchestrator {
         if (!Files.exists(versionFile))
             return versionId;
         try {
-            VersionInfo raw = GSON.fromJson(
+            VersionInfo raw = Json.read(
                     Files.readString(versionFile, StandardCharsets.UTF_8), VersionInfo.class);
             if (raw.inheritsFrom != null && !raw.inheritsFrom.isBlank())
                 return resolveVanillaVersionId(raw.inheritsFrom, instancePath);
@@ -491,7 +492,7 @@ public class InstallOrchestrator {
         for (Path candidate : candidates) {
             if (Files.exists(candidate)) {
                 try {
-                    VersionInfo info = GSON.fromJson(Files.readString(candidate), VersionInfo.class);
+                    VersionInfo info = Json.read(Files.readString(candidate), VersionInfo.class);
                     CoreLogger.get().info(LOG, "Using local cache: " + candidate);
                     return info;
                 } catch (Exception e) {

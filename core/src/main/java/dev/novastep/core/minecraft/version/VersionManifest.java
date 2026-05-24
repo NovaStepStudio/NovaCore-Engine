@@ -2,9 +2,6 @@ package dev.novastep.core.minecraft.version;
 
 import java.util.List;
 
-/**
- * Standard Minecraft version manifest mapping.
- */
 public class VersionManifest {
 
     public Latest latest;

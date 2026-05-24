@@ -5,8 +5,10 @@ import dev.novastep.core.log.CoreLogger;
 import dev.novastep.core.server.CoreHttpServer;
 import dev.novastep.core.websocket.EventBroadcaster;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
+import java.util.concurrent.CountDownLatch;
 
 public class Main {
 
@@ -16,6 +18,8 @@ public class Main {
             ex.printStackTrace(System.err);
             System.err.flush();
         });
+
+        CountDownLatch shutdownLatch = new CountDownLatch(1);
 
         int httpPort = 7878;
         int wsPort = 7879;
@@ -73,6 +77,7 @@ public class Main {
             level = CoreLogger.Level.INFO;
         }
 
+        Files.createDirectories(logDirPath);
         CoreLogger.init(launcherName, logDirPath, level, clearLogs, logQueueLimit);
         CoreLogger log = CoreLogger.get();
 
@@ -88,12 +93,11 @@ public class Main {
 
         Runnable shutdownCallback = () -> {
             log.info("Core", "Shutting down via /close...");
-            // try { httpServer.getLauncher().killAll(); } catch (Exception ignored) { }
             try { downloadManager.shutdown(); } catch (Exception ex) { log.warn("Core", "Failed to shutdown download manager: " + ex.getMessage()); }
             try { broadcaster.stop(1000); } catch (Exception ex) { log.warn("Core", "Failed to stop broadcaster: " + ex.getMessage()); }
             log.info("Core", "Stopped.");
             log.close();
-            System.exit(0);
+            shutdownLatch.countDown();
         };
 
         CoreHttpServer httpServer = new CoreHttpServer(
@@ -107,35 +111,17 @@ public class Main {
         log.info("Core", "Engine version loaded (version=" + engineVersion + ")");
         log.info("Core", "NovaCore-Engine initialization completed successfully");
 
-
-
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             log.info("Core", "JVM shutdown hook triggered");
-            try {
-                httpServer.getLauncher().killAll();
-            } catch (Exception ex) {
-                log.warn("Core", "Failed to kill instances: " + ex.getMessage());
-            }
-            try {
-                httpServer.stop();
-            } catch (Exception ex) {
-                log.error("Core", "Error stopping HTTP server", ex);
-            }
-            try {
-                downloadManager.shutdown();
-            } catch (Exception ex) {
-                log.error("Core", "Error stopping DownloadManager", ex);
-            }
-            try {
-                broadcaster.stop(2000);
-            } catch (Exception ex) {
-                log.warn("Core", "Failed to stop broadcaster: " + ex.getMessage());
-            }
+            try { httpServer.getLauncher().killAll(); } catch (Exception ex) { log.warn("Core", "Failed to kill instances: " + ex.getMessage()); }
+            try { httpServer.stop(); } catch (Exception ex) { log.error("Core", "Error stopping HTTP server", ex); }
+            try { downloadManager.shutdown(); } catch (Exception ex) { log.error("Core", "Error stopping DownloadManager", ex); }
+            try { broadcaster.stop(2000); } catch (Exception ex) { log.warn("Core", "Failed to stop broadcaster: " + ex.getMessage()); }
             log.info("Core", "Stopped.");
             log.close();
         }, "shutdown-hook"));
 
-        Thread.currentThread().join();
+        shutdownLatch.await();
     }
 
     private static String generateSecureToken() {

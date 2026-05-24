@@ -1,7 +1,6 @@
 package dev.novastep.core.minecraft.instance;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import dev.novastep.core.json.Json;
 import dev.novastep.core.log.CoreLogger;
 
 import java.nio.charset.StandardCharsets;
@@ -21,8 +20,6 @@ public final class InstanceTechnicalMetadataStore {
     public static final String FILENAME = "instance.metadata.json";
     private static final int VERIFY_DAYS = 7;
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-
     public static final class TechnicalMetadata {
         public String instanceId;
         public String instancePath;
@@ -39,21 +36,22 @@ public final class InstanceTechnicalMetadataStore {
         }
     }
 
-    private InstanceTechnicalMetadataStore() {}
+    private InstanceTechnicalMetadataStore() {
+    }
 
     public static Path file(Path instancePath) {
         return instancePath.toAbsolutePath().resolve(FILENAME);
     }
 
     public static Optional<TechnicalMetadata> read(Path instancePath) {
-        Path f = file(instancePath);
-        if (!Files.exists(f))
+        Path file = file(instancePath);
+        if (!Files.exists(file)) {
             return Optional.empty();
+        }
         try {
-            String json = Files.readString(f, StandardCharsets.UTF_8);
-            return Optional.ofNullable(GSON.fromJson(json, TechnicalMetadata.class));
+            return Optional.ofNullable(Json.read(Files.readString(file, StandardCharsets.UTF_8), TechnicalMetadata.class));
         } catch (Exception ex) {
-            CoreLogger.get().warn(LOG, "Failed to read " + f + ": " + ex.getMessage());
+            CoreLogger.get().warn(LOG, "Failed to read " + file + ": " + ex.getMessage());
             return Optional.empty();
         }
     }
@@ -63,77 +61,75 @@ public final class InstanceTechnicalMetadataStore {
     }
 
     public static TechnicalMetadata create(Path instancePath, String mcVersion) {
-        TechnicalMetadata m = new TechnicalMetadata();
-        m.instanceId = UUID.randomUUID().toString();
-        m.instancePath = instancePath.toAbsolutePath().toString();
-        m.createdAt = Instant.now().toString();
-        m.lastVerifiedAt = m.createdAt;
-        m.nextVerifyAt = Instant.now().plus(VERIFY_DAYS, ChronoUnit.DAYS).toString();
-
-        save(instancePath, m);
-        return m;
+        TechnicalMetadata metadata = new TechnicalMetadata();
+        metadata.instanceId = UUID.randomUUID().toString();
+        metadata.instancePath = instancePath.toAbsolutePath().toString();
+        metadata.createdAt = Instant.now().toString();
+        metadata.lastVerifiedAt = metadata.createdAt;
+        metadata.nextVerifyAt = Instant.now().plus(VERIFY_DAYS, ChronoUnit.DAYS).toString();
+        save(instancePath, metadata);
+        return metadata;
     }
 
-    public static void recordInstall(Path instancePath, TechnicalMetadata m, String mcVersion) {
-        if (m.installedVersions == null)
-            m.installedVersions = new ArrayList<>();
-
-        if (!m.installedVersions.isEmpty()) {
-            TechnicalMetadata.InstalledVersion last = m.installedVersions.get(m.installedVersions.size() - 1);
+    public static void recordInstall(Path instancePath, TechnicalMetadata metadata, String mcVersion) {
+        if (metadata.installedVersions == null) {
+            metadata.installedVersions = new ArrayList<>();
+        }
+        if (!metadata.installedVersions.isEmpty()) {
+            TechnicalMetadata.InstalledVersion last = metadata.installedVersions.get(metadata.installedVersions.size() - 1);
             if (last != null && mcVersion != null && mcVersion.equals(last.mcVersion)) {
-                save(instancePath, m);
+                save(instancePath, metadata);
                 return;
             }
         }
-
-        TechnicalMetadata.InstalledVersion iv = new TechnicalMetadata.InstalledVersion();
-        iv.installedAt = Instant.now().toString();
-        iv.mcVersion = mcVersion;
-        iv.lastPlayed = false;
-        iv.lastPlayedAt = null;
-        m.installedVersions.add(iv);
-        save(instancePath, m);
+        TechnicalMetadata.InstalledVersion entry = new TechnicalMetadata.InstalledVersion();
+        entry.installedAt = Instant.now().toString();
+        entry.mcVersion = mcVersion;
+        entry.lastPlayed = false;
+        metadata.installedVersions.add(entry);
+        save(instancePath, metadata);
     }
 
-    public static void recordVerification(Path instancePath, TechnicalMetadata m) {
-        m.lastVerifiedAt = Instant.now().toString();
-        m.nextVerifyAt = Instant.now().plus(VERIFY_DAYS, ChronoUnit.DAYS).toString();
-        save(instancePath, m);
+    public static void recordVerification(Path instancePath, TechnicalMetadata metadata) {
+        metadata.lastVerifiedAt = Instant.now().toString();
+        metadata.nextVerifyAt = Instant.now().plus(VERIFY_DAYS, ChronoUnit.DAYS).toString();
+        save(instancePath, metadata);
     }
 
     public static void markLastPlayed(Path instancePath, String mcVersion) {
-        Optional<TechnicalMetadata> opt = read(instancePath);
-        if (opt.isEmpty())
+        Optional<TechnicalMetadata> optional = read(instancePath);
+        if (optional.isEmpty()) {
             return;
-        TechnicalMetadata m = opt.get();
-        if (m.installedVersions == null || m.installedVersions.isEmpty())
-            return;
-
-        String now = Instant.now().toString();
-        for (var e : m.installedVersions) {
-            if (e != null) e.lastPlayed = false;
         }
-
-        for (int i = m.installedVersions.size() - 1; i >= 0; i--) {
-            var e = m.installedVersions.get(i);
-            if (e != null && mcVersion != null && mcVersion.equals(e.mcVersion)) {
-                e.lastPlayed = true;
-                e.lastPlayedAt = now;
+        TechnicalMetadata metadata = optional.get();
+        if (metadata.installedVersions == null || metadata.installedVersions.isEmpty()) {
+            return;
+        }
+        String now = Instant.now().toString();
+        for (var entry : metadata.installedVersions) {
+            if (entry != null) {
+                entry.lastPlayed = false;
+            }
+        }
+        for (int i = metadata.installedVersions.size() - 1; i >= 0; i--) {
+            var entry = metadata.installedVersions.get(i);
+            if (entry != null && mcVersion != null && mcVersion.equals(entry.mcVersion)) {
+                entry.lastPlayed = true;
+                entry.lastPlayedAt = now;
                 break;
             }
         }
-        save(instancePath, m);
+        save(instancePath, metadata);
     }
 
-    public static void save(Path instancePath, TechnicalMetadata m) {
-        Path f = file(instancePath);
+    public static void save(Path instancePath, TechnicalMetadata metadata) {
+        Path file = file(instancePath);
         try {
             Files.createDirectories(instancePath);
-            Files.writeString(f, GSON.toJson(m), StandardCharsets.UTF_8,
+            Files.writeString(file, Json.writePretty(metadata), StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (Exception ex) {
-            CoreLogger.get().warn(LOG, "Failed to save " + f + ": " + ex.getMessage());
+            CoreLogger.get().warn(LOG, "Failed to save " + file + ": " + ex.getMessage());
         }
     }
 }
-

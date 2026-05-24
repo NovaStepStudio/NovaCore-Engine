@@ -1,6 +1,6 @@
 package dev.novastep.core.modloader.installer;
 
-import com.google.gson.Gson;
+import dev.novastep.core.json.Json;
 import dev.novastep.core.log.CoreLogger;
 import dev.novastep.core.modloader.model.InstallProfile;
 import dev.novastep.core.websocket.EventBroadcaster;
@@ -18,7 +18,7 @@ import java.util.zip.ZipEntry;
 public final class InstallerExecutor {
 
     private static final String LOG = "InstallerExecutor";
-    private static final Gson GSON = new Gson();
+    // JSON handled via Jackson (Json.java) — Gson removed
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(20))
@@ -86,7 +86,7 @@ public final class InstallerExecutor {
                 Map.of("enableSnapshots", false, "enableAdvanced", false, "profileSorting", "ByLastPlayed"));
         root.put("version", 3);
 
-        Files.writeString(dir.resolve("launcher_profiles.json"), GSON.toJson(root), StandardCharsets.UTF_8);
+        Files.writeString(dir.resolve("launcher_profiles.json"), Json.write(root), StandardCharsets.UTF_8);
     }
 
     private static InstallProfile extractAndPrepare(
@@ -101,9 +101,8 @@ public final class InstallerExecutor {
                 String name = entry.getName();
 
                 if ("install_profile.json".equals(name)) {
-                    try (InputStream in = jar.getInputStream(entry);
-                            InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                        profile = GSON.fromJson(reader, InstallProfile.class);
+                    try (InputStream in = jar.getInputStream(entry)) {
+                        profile = Json.read(new String(in.readAllBytes(), StandardCharsets.UTF_8), InstallProfile.class);
                     }
                 } else if (name.startsWith("maven/") && !entry.isDirectory()) {
                     String relative = name.substring("maven/".length());

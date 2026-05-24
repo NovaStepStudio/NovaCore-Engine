@@ -1,9 +1,7 @@
 package dev.novastep.core.modloader.provider;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import dev.novastep.core.json.Json;
+import dev.novastep.core.json.JacksonCompatibilityAdapter.JsonNode;
 import dev.novastep.core.log.CoreLogger;
 import dev.novastep.core.minecraft.version.VersionInfo;
 import dev.novastep.core.modloader.ModLoaderProvider;
@@ -28,7 +26,6 @@ import java.util.List;
 
 abstract class AbstractFabricProvider implements ModLoaderProvider {
 
-    private static final Gson       GSON = new Gson();
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
             .followRedirects(HttpClient.Redirect.ALWAYS)
@@ -39,20 +36,25 @@ abstract class AbstractFabricProvider implements ModLoaderProvider {
     protected abstract String versionsEndpoint(String mcVersion);
     protected abstract String profileEndpoint(String mcVersion, String loaderVersion);
 
+    // ─── Loader versions ─────────────────────────────────────────────────────
+
     @Override
     public List<LoaderVersion> getVersions(String mcVersion) throws IOException, InterruptedException {
-        String    json = get(versionsEndpoint(mcVersion));
-        JsonArray arr  = GSON.fromJson(json, JsonArray.class);
+        JsonNode arr    = Json.readTree(get(versionsEndpoint(mcVersion)));
         List<LoaderVersion> result = new ArrayList<>();
-        for (JsonElement el : arr) {
-            JsonObject obj    = el.getAsJsonObject();
-            JsonObject loader = obj.has("loader") ? obj.getAsJsonObject("loader") : obj;
-            String  version   = loader.get("version").getAsString();
-            boolean stable    = loader.has("stable") ? loader.get("stable").getAsBoolean() : true;
+        if (!arr.isArray()) return result;
+
+        for (JsonNode el : arr) {
+            JsonNode loader  = el.has("loader") ? el.get("loader") : el;
+            if (!loader.has("version")) continue;
+            String  version  = loader.get("version").asText();
+            boolean stable   = loader.has("stable") ? loader.get("stable").asBoolean(true) : true;
             result.add(new LoaderVersion(version, mcVersion, stable));
         }
         return result;
     }
+
+    // ─── Download plan ────────────────────────────────────────────────────────
 
     @Override
     public DownloadPlan resolveDownload(
@@ -67,73 +69,25 @@ abstract class AbstractFabricProvider implements ModLoaderProvider {
         Files.createDirectories(versionDir);
         Files.writeString(versionFile, profileJson, StandardCharsets.UTF_8);
 
-        JsonObject profile  = GSON.fromJson(profileJson, JsonObject.class);
-        JsonArray  libraries = profile.has("libraries")
-                ? profile.getAsJsonArray("libraries") : new JsonArray();
+        JsonNode profile   = Json.readTree(profileJson);
+        JsonNode libraries = profile.has("libraries") ? profile.get("libraries") : Json.emptyArrayNode();
 
         List<DownloadPlan.Entry> entries = new ArrayList<>();
-        for (JsonElement el : libraries) {
-            JsonObject lib = el.getAsJsonObject();
+        for (JsonNode lib : libraries) {
             resolveLibraryEntry(lib, librariesPath, entries);
         }
 
         return DownloadPlan.profileOnly(entries);
     }
 
-    private void resolveLibraryEntry(
-            JsonObject lib, Path librariesPath, List<DownloadPlan.Entry> entries) {
-
-        if (lib.has("downloads")) {
-            JsonObject downloads = lib.getAsJsonObject("downloads");
-            if (!downloads.has("artifact")) return;
-            JsonObject artifact = downloads.getAsJsonObject("artifact");
-            String url  = artifact.has("url")  ? artifact.get("url").getAsString()  : null;
-            String path = artifact.has("path") ? artifact.get("path").getAsString() : null;
-            if (url == null || url.isBlank() || path == null) return;
-            long   size = artifact.has("size") ? artifact.get("size").getAsLong() : -1;
-            String sha1 = artifact.has("sha1") ? artifact.get("sha1").getAsString() : null;
-            String name = lib.has("name") ? lib.get("name").getAsString() : path;
-            entries.add(DownloadPlan.Entry.library(name, url, librariesPath.resolve(path), size, sha1));
-            return;
-        }
-
-        if (lib.has("name") && lib.has("url")) {
-            String coord = lib.get("name").getAsString();
-            String base  = lib.get("url").getAsString();
-            if (base.isBlank()) base = FABRIC_MAVEN_BASE;
-            try {
-                MavenCoordinate mc = MavenCoordinate.parse(coord);
-                String url  = mc.toRemoteUrl(base);
-                Path   dest = mc.toLocalPath(librariesPath);
-                entries.add(DownloadPlan.Entry.library(coord, url, dest, -1, null));
-            } catch (IllegalArgumentException ex) {
-                CoreLogger.get().warn(name(), "Failed to parse Maven coordinate: " + coord + " — " + ex.getMessage());
-            }
-            return;
-        }
-
-        if (lib.has("name")) {
-            String coord = lib.get("name").getAsString();
-            try {
-                MavenCoordinate mc = MavenCoordinate.parse(coord);
-                String url  = mc.toRemoteUrl(FABRIC_MAVEN_BASE);
-                Path   dest = mc.toLocalPath(librariesPath);
-                entries.add(DownloadPlan.Entry.library(coord, url, dest, -1, null));
-            } catch (IllegalArgumentException ex) {
-                CoreLogger.get().warn(name(), "Failed to parse Maven coordinate: " + coord + " — " + ex.getMessage());
-            }
-        }
-    }
+    // ─── Execution plan ───────────────────────────────────────────────────────
 
     @Override
-    public boolean requiresInstallerRun() {
-        return false;
-    }
+    public boolean requiresInstallerRun() { return false; }
 
     @Override
     public void runInstaller(String sessionId, InstalledLoader loader, Path instancePath,
-                             Path librariesPath, Path minecraftJar, EventBroadcaster broadcaster) {
-    }
+                             Path librariesPath, Path minecraftJar, EventBroadcaster broadcaster) {}
 
     @Override
     public ExecutionPlan buildExecution(
@@ -149,21 +103,20 @@ abstract class AbstractFabricProvider implements ModLoaderProvider {
         }
 
         try {
-            String     raw     = Files.readString(versionFile, StandardCharsets.UTF_8);
-            JsonObject profile = GSON.fromJson(raw, JsonObject.class);
+            JsonNode profile  = Json.readTree(versionFile);
 
-            String mainClass = profile.has("mainClass")
-                    ? profile.get("mainClass").getAsString()
+            String mainClass  = profile.has("mainClass")
+                    ? profile.get("mainClass").asText()
                     : vanillaInfo.mainClass;
 
             List<Path>   classpath = buildClasspath(profile, librariesPath, vanillaInfo, instancePath);
-            List<String> jvmArgs   = new ArrayList<>();
-            List<String> gameArgs  = new ArrayList<>();
+            List<String> jvmArgs  = new ArrayList<>();
+            List<String> gameArgs = new ArrayList<>();
 
             if (profile.has("arguments")) {
-                JsonObject args = profile.getAsJsonObject("arguments");
-                collectStringArgs(args.has("jvm")  ? args.getAsJsonArray("jvm")  : new JsonArray(), jvmArgs);
-                collectStringArgs(args.has("game") ? args.getAsJsonArray("game") : new JsonArray(), gameArgs);
+                JsonNode args = profile.get("arguments");
+                collectStringArgs(args.has("jvm")  ? args.get("jvm")  : Json.emptyArrayNode(), jvmArgs);
+                collectStringArgs(args.has("game") ? args.get("game") : Json.emptyArrayNode(), gameArgs);
             }
 
             return ExecutionPlan.fromVersionJson(mainClass, classpath, jvmArgs, gameArgs);
@@ -174,30 +127,75 @@ abstract class AbstractFabricProvider implements ModLoaderProvider {
         }
     }
 
+    // ─── Internal helpers ─────────────────────────────────────────────────────
+
+    private void resolveLibraryEntry(
+            JsonNode lib, Path librariesPath, List<DownloadPlan.Entry> entries) {
+
+        // Case 1: explicit downloads.artifact block
+        if (lib.has("downloads")) {
+            JsonNode downloads = lib.get("downloads");
+            if (!downloads.has("artifact")) return;
+            JsonNode artifact = downloads.get("artifact");
+            String url  = artifact.has("url")  ? artifact.get("url").asText()  : null;
+            String path = artifact.has("path") ? artifact.get("path").asText() : null;
+            if (url == null || url.isBlank() || path == null) return;
+            long   size = artifact.has("size") ? artifact.get("size").asLong(-1L) : -1L;
+            String sha1 = artifact.has("sha1") ? artifact.get("sha1").asText()   : null;
+            String name = lib.has("name")      ? lib.get("name").asText()        : path;
+            entries.add(DownloadPlan.Entry.library(name, url, librariesPath.resolve(path), size, sha1));
+            return;
+        }
+
+        // Case 2: name + url (Fabric-style)
+        if (lib.has("name") && lib.has("url")) {
+            String coord = lib.get("name").asText();
+            String base  = lib.get("url").asText();
+            if (base.isBlank()) base = FABRIC_MAVEN_BASE;
+            try {
+                MavenCoordinate mc = MavenCoordinate.parse(coord);
+                entries.add(DownloadPlan.Entry.library(coord, mc.toRemoteUrl(base), mc.toLocalPath(librariesPath), -1, null));
+            } catch (IllegalArgumentException ex) {
+                CoreLogger.get().warn(name(), "Failed to parse Maven coordinate: " + coord + " — " + ex.getMessage());
+            }
+            return;
+        }
+
+        // Case 3: name only — resolve from Fabric Maven
+        if (lib.has("name")) {
+            String coord = lib.get("name").asText();
+            try {
+                MavenCoordinate mc = MavenCoordinate.parse(coord);
+                entries.add(DownloadPlan.Entry.library(coord, mc.toRemoteUrl(FABRIC_MAVEN_BASE), mc.toLocalPath(librariesPath), -1, null));
+            } catch (IllegalArgumentException ex) {
+                CoreLogger.get().warn(name(), "Failed to parse Maven coordinate: " + coord + " — " + ex.getMessage());
+            }
+        }
+    }
+
     private List<Path> buildClasspath(
-            JsonObject profile, Path librariesPath, VersionInfo vanillaInfo, Path instancePath) {
+            JsonNode profile, Path librariesPath, VersionInfo vanillaInfo, Path instancePath) {
 
         List<Path> entries = new ArrayList<>();
 
         if (profile.has("libraries")) {
-            for (JsonElement el : profile.getAsJsonArray("libraries")) {
-                JsonObject lib = el.getAsJsonObject();
-
+            for (JsonNode lib : profile.get("libraries")) {
                 if (lib.has("downloads")) {
-                    JsonObject downloads = lib.getAsJsonObject("downloads");
+                    JsonNode downloads = lib.get("downloads");
                     if (!downloads.has("artifact")) continue;
-                    JsonObject artifact = downloads.getAsJsonObject("artifact");
+                    JsonNode artifact = downloads.get("artifact");
                     if (!artifact.has("path")) continue;
-                    Path jar = librariesPath.resolve(artifact.get("path").getAsString());
+                    Path jar = librariesPath.resolve(artifact.get("path").asText());
                     if (Files.exists(jar)) entries.add(jar);
 
                 } else if (lib.has("name")) {
                     try {
-                        Path jar = MavenCoordinate.parse(lib.get("name").getAsString())
-                                .toLocalPath(librariesPath);
+                        Path jar = MavenCoordinate.parse(lib.get("name").asText()).toLocalPath(librariesPath);
                         if (Files.exists(jar)) entries.add(jar);
                     } catch (IllegalArgumentException ex) {
-                        CoreLogger.get().warn(name(), "Failed to parse library Maven coordinate: " + lib.get("name").getAsString() + " — " + ex.getMessage());
+                        CoreLogger.get().warn(name(),
+                                "Failed to parse library Maven coordinate: "
+                                + lib.get("name").asText() + " — " + ex.getMessage());
                     }
                 }
             }
@@ -212,11 +210,14 @@ abstract class AbstractFabricProvider implements ModLoaderProvider {
         return entries;
     }
 
-    private void collectStringArgs(JsonArray arr, List<String> target) {
-        for (JsonElement el : arr) {
-            if (el.isJsonPrimitive()) target.add(el.getAsString());
+    private void collectStringArgs(JsonNode arr, List<String> target) {
+        if (!arr.isArray()) return;
+        for (JsonNode el : arr) {
+            if (el.isTextual()) target.add(el.asText());
         }
     }
+
+    // ─── HTTP helper ──────────────────────────────────────────────────────────
 
     protected String get(String url) throws IOException, InterruptedException {
         HttpRequest req = HttpRequest.newBuilder()
@@ -225,9 +226,8 @@ abstract class AbstractFabricProvider implements ModLoaderProvider {
                 .timeout(Duration.ofSeconds(30))
                 .build();
         HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        if (res.statusCode() != 200) {
+        if (res.statusCode() != 200)
             throw new IOException("HTTP " + res.statusCode() + " from: " + url);
-        }
         return res.body();
     }
 }

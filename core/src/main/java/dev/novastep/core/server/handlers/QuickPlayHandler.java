@@ -1,31 +1,41 @@
 package dev.novastep.core.server.handlers;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import dev.novastep.core.log.CoreLogger;
-import dev.novastep.core.minecraft.world.WorldModels.WorldMetadata;
 import dev.novastep.core.minecraft.world.WorldModels.WorldFlags;
+import dev.novastep.core.minecraft.world.WorldModels.WorldMetadata;
 import dev.novastep.core.server.HttpUtils;
+import dev.novastep.core.util.MemoryOptimizer;
 import dev.novastep.core.util.NbtReader;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
-import java.nio.file.*;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 
-import static dev.novastep.core.util.NbtReader.*;
+import static dev.novastep.core.util.NbtReader.getAsBoolean;
+import static dev.novastep.core.util.NbtReader.getAsInt;
+import static dev.novastep.core.util.NbtReader.getAsLong;
+import static dev.novastep.core.util.NbtReader.getAsString;
+import static dev.novastep.core.util.NbtReader.getNested;
 
 public class QuickPlayHandler implements HttpHandler {
 
     private static final String LOG = "QuickPlayHandler";
-    private final Path instancesDir;
-    private final Gson gson = new Gson();
+    private static final int MAX_CACHE_ENTRIES = 256;
 
-    private static final Map<String, CachedWorld> CACHE = new ConcurrentHashMap<>();
+    private final Path instancesDir;
+    private static final Map<String, CachedWorld> CACHE = MemoryOptimizer.newSynchronizedLruCache(MAX_CACHE_ENTRIES);
 
     private record CachedWorld(WorldMetadata metadata, long lastModified) {
     }
@@ -44,18 +54,18 @@ public class QuickPlayHandler implements HttpHandler {
     }
 
     private void handleGetWorlds(HttpExchange exchange) throws IOException {
-        CoreLogger.get().info(LOG, "=== SCANNING ALL INSTANCES FOR WORLDS ===");
         try {
             List<WorldMetadata> allWorlds = new ArrayList<>();
             if (!Files.exists(instancesDir)) {
-                HttpUtils.ok(exchange, new JsonObject());
+                HttpUtils.ok(exchange, Map.of("worlds", List.of()));
                 return;
             }
 
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(instancesDir)) {
                 for (Path instancePath : stream) {
-                    if (!Files.isDirectory(instancePath))
+                    if (!Files.isDirectory(instancePath)) {
                         continue;
+                    }
                     Path savesDir = resolveSavesDir(instancePath);
                     if (savesDir != null) {
                         scanSavesFolder(savesDir, allWorlds, instancePath.getFileName().toString());
@@ -64,12 +74,10 @@ public class QuickPlayHandler implements HttpHandler {
             }
 
             allWorlds.sort(Comparator.comparingLong(WorldMetadata::lastPlayed).reversed());
-            JsonObject response = new JsonObject();
-            response.add("worlds", gson.toJsonTree(allWorlds));
-            HttpUtils.ok(exchange, response);
-        } catch (Exception e) {
-            CoreLogger.get().error(LOG, "Discovery failed", e);
-            HttpUtils.serverError(exchange, e.getMessage());
+            HttpUtils.ok(exchange, Map.of("worlds", allWorlds));
+        } catch (Exception ex) {
+            CoreLogger.get().error(LOG, "World discovery failed", ex);
+            HttpUtils.serverError(exchange, ex.getMessage());
         }
     }
 
@@ -79,40 +87,45 @@ public class QuickPlayHandler implements HttpHandler {
                 instanceDir.resolve("saves"),
                 instanceDir.resolve(".minecraft").resolve("saves")
         };
-        for (Path p : candidates)
-            if (Files.isDirectory(p))
-                return p;
+        for (Path candidate : candidates) {
+            if (Files.isDirectory(candidate)) {
+                return candidate;
+            }
+        }
         return null;
     }
 
     private void scanSavesFolder(Path savesDir, List<WorldMetadata> worlds, String instanceId) {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(savesDir)) {
             for (Path worldDir : stream) {
-                if (!Files.isDirectory(worldDir))
+                if (!Files.isDirectory(worldDir)) {
                     continue;
-                WorldMetadata meta = processWorldFolder(worldDir, instanceId);
-                if (meta != null)
-                    worlds.add(meta);
+                }
+                WorldMetadata metadata = processWorldFolder(worldDir, instanceId);
+                if (metadata != null) {
+                    worlds.add(metadata);
+                }
             }
-        } catch (IOException e) {
-            CoreLogger.get().error(LOG, "Read error: " + savesDir, e);
+        } catch (IOException ex) {
+            CoreLogger.get().error(LOG, "Failed reading saves folder " + savesDir, ex);
         }
     }
 
     private WorldMetadata processWorldFolder(Path worldDir, String instanceId) throws IOException {
         Path levelDat = worldDir.resolve("level.dat");
         Path levelDatOld = worldDir.resolve("level.dat_old");
-
-        if (!Files.exists(levelDat) && !Files.exists(levelDatOld))
+        if (!Files.exists(levelDat) && !Files.exists(levelDatOld)) {
             return null;
+        }
 
         Path target = Files.exists(levelDat) ? levelDat : levelDatOld;
-        long lastMod = Files.getLastModifiedTime(target).toMillis();
+        long lastModified = Files.getLastModifiedTime(target).toMillis();
         String cacheKey = target.toAbsolutePath().toString();
 
         CachedWorld cached = CACHE.get(cacheKey);
-        if (cached != null && cached.lastModified == lastMod)
+        if (cached != null && cached.lastModified == lastModified) {
             return cached.metadata;
+        }
 
         boolean locked = isLocked(worldDir);
         Map<String, Object> nbt = null;
@@ -120,50 +133,52 @@ public class QuickPlayHandler implements HttpHandler {
 
         try {
             if (Files.exists(levelDat)) {
-                try (InputStream is = Files.newInputStream(levelDat)) {
-                    nbt = new NbtReader(is).parse();
+                try (InputStream inputStream = Files.newInputStream(levelDat)) {
+                    nbt = new NbtReader(inputStream).parse();
                 }
             }
             if (nbt == null && Files.exists(levelDatOld)) {
-                try (InputStream is = Files.newInputStream(levelDatOld)) {
-                    nbt = new NbtReader(is).parse();
+                try (InputStream inputStream = Files.newInputStream(levelDatOld)) {
+                    nbt = new NbtReader(inputStream).parse();
                 }
             }
-        } catch (Exception e) {
+        } catch (Exception ex) {
             corrupted = true;
-            CoreLogger.get().error(LOG, "Corrupted world: " + worldDir.getFileName());
+            CoreLogger.get().error(LOG, "Corrupted world: " + worldDir.getFileName(), ex);
         }
 
-        if (nbt == null)
+        if (nbt == null) {
             return createFallback(worldDir, instanceId, locked, corrupted);
+        }
 
         Map<String, Object> data = getNested(nbt, "Data");
-        if (data == null)
+        if (data == null) {
             data = nbt;
+        }
 
         String levelName = getAsString(data.get("LevelName"), worldDir.getFileName().toString());
-        long lastPlayed = getAsLong(data.get("LastPlayed"), lastMod);
+        long lastPlayed = getAsLong(data.get("LastPlayed"), lastModified);
         int gameType = getAsInt(data.get("GameType"), 0);
         boolean hardcore = getAsBoolean(data.get("hardcore"), false);
         long dayTime = getAsLong(data.get("Time"), 0);
 
-        Long seedVal = getNested(data, "WorldGenSettings.seed");
-        long seed = seedVal != null ? seedVal : getAsLong(data.get("RandomSeed"), 0);
+        Long seedValue = getNested(data, "WorldGenSettings.seed");
+        long seed = seedValue != null ? seedValue : getAsLong(data.get("RandomSeed"), 0);
 
         int dataVersion = getAsInt(data.get("DataVersion"), 0);
         String versionName = getAsString(getNested(data, "Version.Name"), inferVersion(dataVersion));
         boolean modded = getAsBoolean(data.get("WasModded"), false);
 
         String icon = null;
-        Path iconP = worldDir.resolve("icon.png");
-        if (Files.exists(iconP)) {
+        Path iconPath = worldDir.resolve("icon.png");
+        if (Files.exists(iconPath)) {
             try {
-                icon = "data:image/png;base64," + Base64.getEncoder().encodeToString(Files.readAllBytes(iconP));
+                icon = "data:image/png;base64," + Base64.getEncoder().encodeToString(Files.readAllBytes(iconPath));
             } catch (IOException ignored) {
             }
         }
 
-        WorldMetadata meta = new WorldMetadata(
+        WorldMetadata metadata = new WorldMetadata(
                 worldDir.getFileName().toString(),
                 levelName,
                 lastPlayed,
@@ -176,58 +191,53 @@ public class QuickPlayHandler implements HttpHandler {
                 worldDir.toAbsolutePath().toString(),
                 instanceId,
                 icon,
-                new WorldFlags(locked, corrupted, modded, true));
+                new WorldFlags(locked, corrupted, modded, true)
+        );
 
-        CACHE.put(cacheKey, new CachedWorld(meta, lastMod));
-        return meta;
+        CACHE.put(cacheKey, new CachedWorld(metadata, lastModified));
+        return metadata;
     }
 
     private boolean isLocked(Path worldDir) {
         Path lock = worldDir.resolve("session.lock");
-        if (!Files.exists(lock))
+        if (!Files.exists(lock)) {
             return false;
+        }
         try (FileChannel channel = FileChannel.open(lock, StandardOpenOption.WRITE)) {
-            FileLock fl = channel.tryLock();
-            if (fl == null)
+            FileLock lockHandle = channel.tryLock();
+            if (lockHandle == null) {
                 return true;
-            fl.release();
+            }
+            lockHandle.release();
             return false;
-        } catch (Exception e) {
+        } catch (Exception ex) {
             return true;
         }
     }
 
-    private WorldMetadata createFallback(Path dir, String instId, boolean locked, boolean corrupted) {
+    private WorldMetadata createFallback(Path dir, String instanceId, boolean locked, boolean corrupted) {
         return new WorldMetadata(
                 dir.getFileName().toString(),
-                dir.getFileName().toString() + " (Inaccesible)",
+                dir.getFileName().toString() + " (Inaccessible)",
                 0, 0, false, "Unknown", 0, 0, 0,
                 dir.toAbsolutePath().toString(),
-                instId, null,
-                new WorldFlags(locked, corrupted, false, false));
+                instanceId,
+                null,
+                new WorldFlags(locked, corrupted, false, false)
+        );
     }
 
-    private String inferVersion(int dv) {
-        if (dv >= 3953)
-            return "1.21.x";
-        if (dv >= 3463)
-            return "1.20.x";
-        if (dv >= 3105)
-            return "1.19.x";
-        if (dv >= 2860)
-            return "1.18.x";
-        if (dv >= 2724)
-            return "1.17.x";
-        if (dv >= 2566)
-            return "1.16.x";
-        if (dv >= 2230)
-            return "1.15.x";
-        if (dv >= 1976)
-            return "1.14.x";
-        if (dv >= 1519)
-            return "1.13.x";
-        if (dv >= 1343)
-            return "1.12.x";
+    private String inferVersion(int dataVersion) {
+        if (dataVersion >= 3953) return "1.21.x";
+        if (dataVersion >= 3463) return "1.20.x";
+        if (dataVersion >= 3105) return "1.19.x";
+        if (dataVersion >= 2860) return "1.18.x";
+        if (dataVersion >= 2724) return "1.17.x";
+        if (dataVersion >= 2566) return "1.16.x";
+        if (dataVersion >= 2230) return "1.15.x";
+        if (dataVersion >= 1976) return "1.14.x";
+        if (dataVersion >= 1519) return "1.13.x";
+        if (dataVersion >= 1343) return "1.12.x";
         return "Legacy";
     }
 }

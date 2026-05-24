@@ -1,9 +1,12 @@
 package dev.novastep.core.minecraft.manifest;
 
+import dev.novastep.core.minecraft.MavenPathResolver;
 import dev.novastep.core.minecraft.version.VersionInfo;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class VersionMerger {
 
@@ -22,6 +25,7 @@ public final class VersionMerger {
         merged.downloads      = child.downloads      != null ? child.downloads      : parent.downloads;
         merged.minimumLauncherVersion = Math.max(
                 child.minimumLauncherVersion, parent.minimumLauncherVersion);
+        merged.inheritsFrom = null;
 
         merged.minecraftArguments = child.minecraftArguments != null
                 ? child.minecraftArguments
@@ -36,10 +40,10 @@ public final class VersionMerger {
     private static List<VersionInfo.Library> mergeLibraries(
             List<VersionInfo.Library> parent,
             List<VersionInfo.Library> child) {
-        List<VersionInfo.Library> result = new ArrayList<>();
-        if (parent != null) result.addAll(parent);
-        if (child  != null) result.addAll(child);
-        return result;
+        Map<String, VersionInfo.Library> merged = new LinkedHashMap<>();
+        addLibraries(merged, parent);
+        addLibraries(merged, child);
+        return new ArrayList<>(merged.values());
     }
 
     private static VersionInfo.Arguments mergeArguments(
@@ -61,5 +65,28 @@ public final class VersionMerger {
         if (parent != null) result.addAll(parent);
         if (child  != null) result.addAll(child);
         return result;
+    }
+
+    private static void addLibraries(Map<String, VersionInfo.Library> target, List<VersionInfo.Library> source) {
+        if (source == null) {
+            return;
+        }
+        for (VersionInfo.Library library : source) {
+            target.put(libraryKey(library), library);
+        }
+    }
+
+    private static String libraryKey(VersionInfo.Library library) {
+        if (library == null) {
+            return "";
+        }
+        if (library.name != null && !library.name.isBlank()) {
+            return MavenPathResolver.coordinateKey(library.name);
+        }
+        if (library.downloads != null && library.downloads.artifact != null
+                && library.downloads.artifact.path != null && !library.downloads.artifact.path.isBlank()) {
+            return library.downloads.artifact.path;
+        }
+        return Integer.toHexString(System.identityHashCode(library));
     }
 }

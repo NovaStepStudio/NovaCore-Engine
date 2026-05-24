@@ -1,11 +1,11 @@
 package dev.novastep.core.minecraft;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
+import com.fasterxml.jackson.core.type.TypeReference;
+import dev.novastep.core.json.Json;
 import dev.novastep.core.log.CoreLogger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SessionManager {
 
     private static final String LOG = "SessionManager";
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static Path sessionsFile;
     private static final AtomicBoolean privacyEnabled = new AtomicBoolean(false);
@@ -30,11 +29,11 @@ public class SessionManager {
     public static void setPrivacyEnabled(boolean enabled) {
         privacyEnabled.set(enabled);
         if (!enabled) {
-            CoreLogger.get().info("Privacy", "Tracking de sesiones deshabilitado por configuración");
+            CoreLogger.get().info("Privacy", "Session tracking disabled by configuration");
             sessions.clear();
             saveSessions();
         } else {
-            CoreLogger.get().info("Privacy", "Tracking de sesiones habilitado");
+            CoreLogger.get().info("Privacy", "Session tracking enabled");
         }
     }
 
@@ -43,33 +42,36 @@ public class SessionManager {
     }
 
     private static void loadSessions() {
-        if (sessionsFile == null || !Files.exists(sessionsFile))
+        if (sessionsFile == null || !Files.exists(sessionsFile)) {
             return;
+        }
         try {
-            String json = Files.readString(sessionsFile);
-            sessions = GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {
-            }.getType());
-            if (sessions == null)
+            sessions = Json.read(Files.readString(sessionsFile, StandardCharsets.UTF_8),
+                    new TypeReference<List<Map<String, Object>>>() {
+                    });
+            if (sessions == null) {
                 sessions = new ArrayList<>();
-        } catch (IOException e) {
-            CoreLogger.get().warn(LOG, "Could not load sessions: " + e.getMessage());
+            }
+        } catch (IOException ex) {
+            CoreLogger.get().warn(LOG, "Could not load sessions: " + ex.getMessage());
         }
     }
 
     private static void saveSessions() {
-        if (sessionsFile == null)
+        if (sessionsFile == null) {
             return;
+        }
         try {
-            Files.writeString(sessionsFile, GSON.toJson(sessions));
-        } catch (IOException e) {
-            CoreLogger.get().warn(LOG, "Could not save sessions: " + e.getMessage());
+            Files.writeString(sessionsFile, Json.writePretty(sessions), StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            CoreLogger.get().warn(LOG, "Could not save sessions: " + ex.getMessage());
         }
     }
 
     public static void recordSession(Map<String, Object> sessionData) {
-        if (!privacyEnabled.get())
+        if (!privacyEnabled.get()) {
             return;
-
+        }
         sessions.add(sessionData);
         if (sessions.size() > 100) {
             sessions.remove(0);
@@ -78,8 +80,6 @@ public class SessionManager {
     }
 
     public static List<Map<String, Object>> getSessions() {
-        if (!privacyEnabled.get())
-            return new ArrayList<>();
-        return sessions;
+        return privacyEnabled.get() ? new ArrayList<>(sessions) : new ArrayList<>();
     }
 }

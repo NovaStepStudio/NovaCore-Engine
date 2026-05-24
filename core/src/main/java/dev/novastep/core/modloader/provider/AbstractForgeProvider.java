@@ -1,8 +1,6 @@
 package dev.novastep.core.modloader.provider;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import dev.novastep.core.json.JacksonCompatibilityAdapter;
 import dev.novastep.core.log.CoreLogger;
 import dev.novastep.core.minecraft.version.VersionInfo;
 import dev.novastep.core.modloader.ModLoaderProvider;
@@ -30,20 +28,15 @@ import java.util.jar.JarFile;
 
 abstract class AbstractForgeProvider implements ModLoaderProvider {
 
-    private static final Gson GSON = new Gson();
     protected static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
             .followRedirects(HttpClient.Redirect.ALWAYS)
             .build();
 
     protected abstract String installerUrl(String loaderVersionId);
-
     protected abstract String mavenRepoBase();
-
     protected abstract List<String> listAllVersions() throws IOException, InterruptedException;
-
     protected abstract List<String> filterForMinecraft(List<String> all, String mcVersion);
-
     protected abstract String versionIdForInstaller(String mcVersion, String loaderVersion);
 
     @Override
@@ -51,15 +44,14 @@ abstract class AbstractForgeProvider implements ModLoaderProvider {
             String mcVersion, String loaderVersion,
             Path instancePath, Path librariesPath) throws IOException, InterruptedException {
 
-        String versionId = versionIdForInstaller(mcVersion, loaderVersion);
+        String versionId    = versionIdForInstaller(mcVersion, loaderVersion);
         String installerUrl = installerUrl(versionId);
-        Path installerDest = instancePath.resolve("installers").resolve(versionId + "-installer.jar");
+        Path   installerDest = instancePath.resolve("installers").resolve(versionId + "-installer.jar");
 
         Files.createDirectories(installerDest.getParent());
 
         List<DownloadPlan.Entry> entries = new ArrayList<>();
         entries.add(DownloadPlan.Entry.installer(versionId + "-installer.jar", installerUrl, installerDest));
-
         return DownloadPlan.withInstaller(entries, installerDest);
     }
 
@@ -67,6 +59,8 @@ abstract class AbstractForgeProvider implements ModLoaderProvider {
     public boolean requiresInstallerRun() {
         return true;
     }
+
+    // ─── Installer execution ──────────────────────────────────────────────────
 
     @Override
     public void runInstaller(
@@ -77,8 +71,8 @@ abstract class AbstractForgeProvider implements ModLoaderProvider {
             Path minecraftJar,
             EventBroadcaster broadcaster) throws Exception {
 
-        Path installerJar = Path.of(loader.installerJarPath);
-        String javaExec = JavaResolver.resolve(instancePath);
+        Path   installerJar = Path.of(loader.installerJarPath);
+        String javaExec     = JavaResolver.resolve(instancePath);
 
         String canonicalId = readCanonicalVersionId(installerJar);
         if (canonicalId != null && !canonicalId.equals(loader.versionJsonId)) {
@@ -106,14 +100,74 @@ abstract class AbstractForgeProvider implements ModLoaderProvider {
                 "versionId", loader.versionJsonId));
     }
 
+    // ─── Execution plan ───────────────────────────────────────────────────────
+
+    @Override
+    public ExecutionPlan buildExecution(
+            InstalledLoader loader,
+            VersionInfo vanillaInfo,
+            Path instancePath,
+            Path librariesPath) {
+
+        String versionId  = loader.versionJsonId;
+        Path   versionFile = instancePath.resolve("versions").resolve(versionId).resolve(versionId + ".json");
+
+        if (!Files.exists(versionFile)) {
+            CoreLogger.get().warn(name(), "Version JSON not found: " + versionFile);
+            return null;
+        }
+
+        try {
+            JacksonCompatibilityAdapter.JsonNode profile = JacksonCompatibilityAdapter.readTree(versionFile);
+
+            String mainClass = profile.has("mainClass")
+                    ? profile.get("mainClass").asText()
+                    : vanillaInfo.mainClass;
+
+            List<Path> classpath   = resolveClasspath(profile, librariesPath);
+            boolean useModulePath  = "cpw.mods.bootstraplauncher.BootstrapLauncher".equals(mainClass);
+
+            return useModulePath
+                    ? ExecutionPlan.forBootstrapLauncher(mainClass, classpath, List.of(), List.of())
+                    : ExecutionPlan.fromVersionJson(mainClass, classpath, List.of(), List.of());
+
+        } catch (IOException ex) {
+            CoreLogger.get().error(name(), "Failed to read version JSON: " + versionFile, ex);
+            return null;
+        }
+    }
+
+    // ─── Internal helpers ─────────────────────────────────────────────────────
+
+    private List<Path> resolveClasspath(JacksonCompatibilityAdapter.JsonNode profile, Path librariesPath) {
+        List<Path> entries = new ArrayList<>();
+        if (!profile.has("libraries"))
+            return entries;
+
+        for (JacksonCompatibilityAdapter.JsonNode lib : profile.get("libraries").elements()) {
+            JacksonCompatibilityAdapter.JsonNode nameNode = lib.get("name");
+            if (nameNode == null || nameNode.isNull())
+                continue;
+            String name = nameNode.asText();
+            try {
+                Path jar = MavenCoordinate.parse(name).toLocalPath(librariesPath);
+                if (Files.exists(jar))
+                    entries.add(jar);
+            } catch (IllegalArgumentException ignored) {
+                // Skip unparseable coords — already warned during download phase
+            }
+        }
+        return entries;
+    }
+
     private String readCanonicalVersionId(Path installerJar) {
         try (JarFile jar = new JarFile(installerJar.toFile())) {
             java.util.jar.JarEntry entry = jar.getJarEntry("version.json");
             if (entry == null)
                 return null;
             String json = new String(jar.getInputStream(entry).readAllBytes(), StandardCharsets.UTF_8);
-            JsonObject obj = GSON.fromJson(json, JsonObject.class);
-            return obj.has("id") ? obj.get("id").getAsString() : null;
+            JacksonCompatibilityAdapter.JsonNode obj = JacksonCompatibilityAdapter.readTree(json);
+            return obj.has("id") ? obj.get("id").asText() : null;
         } catch (Exception e) {
             return null;
         }
@@ -125,9 +179,9 @@ abstract class AbstractForgeProvider implements ModLoaderProvider {
             Path installerJar,
             Path instancePath) throws IOException {
 
-        String versionId = loader.versionJsonId;
-        Path versionDir = instancePath.resolve("versions").resolve(versionId);
-        Path versionFile = versionDir.resolve(versionId + ".json");
+        String versionId  = loader.versionJsonId;
+        Path   versionDir  = instancePath.resolve("versions").resolve(versionId);
+        Path   versionFile = versionDir.resolve(versionId + ".json");
 
         if (Files.exists(versionFile)) {
             CoreLogger.get().info(name(), "[" + sessionId + "] version.json already exists: " + versionId);
@@ -145,74 +199,6 @@ abstract class AbstractForgeProvider implements ModLoaderProvider {
                 CoreLogger.get().warn(name(), "[" + sessionId + "] version.json not found in installer JAR");
             }
         }
-    }
-
-    @Override
-    public ExecutionPlan buildExecution(
-            InstalledLoader loader,
-            VersionInfo vanillaInfo,
-            Path instancePath,
-            Path librariesPath) {
-
-        String versionId = loader.versionJsonId;
-        Path versionFile = instancePath.resolve("versions").resolve(versionId).resolve(versionId + ".json");
-
-        if (!Files.exists(versionFile)) {
-            CoreLogger.get().warn(name(), "Version JSON not found: " + versionFile);
-            return null;
-        }
-
-        try {
-            String raw = Files.readString(versionFile, StandardCharsets.UTF_8);
-            JsonObject profile = GSON.fromJson(raw, JsonObject.class);
-
-            String mainClass = profile.has("mainClass")
-                    ? profile.get("mainClass").getAsString()
-                    : vanillaInfo.mainClass;
-
-            List<Path> classpath = resolveClasspath(profile, librariesPath);
-            boolean useModulePath = "cpw.mods.bootstraplauncher.BootstrapLauncher".equals(mainClass);
-
-            return useModulePath
-                    ? ExecutionPlan.forBootstrapLauncher(mainClass, classpath, List.of(), List.of())
-                    : ExecutionPlan.fromVersionJson(mainClass, classpath, List.of(), List.of());
-
-        } catch (IOException ex) {
-            CoreLogger.get().error(name(), "Failed to read version JSON: " + versionFile, ex);
-            return null;
-        }
-    }
-
-    private List<Path> resolveClasspath(JsonObject profile, Path librariesPath) {
-        List<Path> entries = new ArrayList<>();
-        if (!profile.has("libraries"))
-            return entries;
-        for (JsonElement el : profile.getAsJsonArray("libraries")) {
-            JsonObject lib = el.getAsJsonObject();
-            String name = lib.has("name") ? lib.get("name").getAsString() : null;
-            if (name == null)
-                continue;
-            try {
-                Path jar = MavenCoordinate.parse(name).toLocalPath(librariesPath);
-                if (Files.exists(jar))
-                    entries.add(jar);
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        return entries;
-    }
-
-    protected String get(String url) throws IOException, InterruptedException {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .GET()
-                .timeout(Duration.ofSeconds(30))
-                .build();
-        HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        if (res.statusCode() != 200) {
-            throw new IOException("HTTP " + res.statusCode() + " from: " + url);
-        }
-        return res.body();
     }
 
     private void cleanupInstaller(String sessionId, Path installerJar) {
@@ -237,15 +223,27 @@ abstract class AbstractForgeProvider implements ModLoaderProvider {
         List<String> versions = new ArrayList<>();
         int start = 0;
         while (true) {
-            int open = xml.indexOf("<version>", start);
-            if (open == -1)
-                break;
+            int open  = xml.indexOf("<version>", start);
+            if (open == -1) break;
             int close = xml.indexOf("</version>", open);
-            if (close == -1)
-                break;
+            if (close == -1) break;
             versions.add(xml.substring(open + 9, close).trim());
             start = close + 10;
         }
         return versions;
+    }
+
+    // ─── HTTP helper ──────────────────────────────────────────────────────────
+
+    protected String get(String url) throws IOException, InterruptedException {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .timeout(Duration.ofSeconds(30))
+                .build();
+        HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (res.statusCode() != 200)
+            throw new IOException("HTTP " + res.statusCode() + " from: " + url);
+        return res.body();
     }
 }

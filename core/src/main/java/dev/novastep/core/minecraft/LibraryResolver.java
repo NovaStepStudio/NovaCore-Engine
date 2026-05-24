@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,13 +17,13 @@ public final class LibraryResolver {
     private static final String LOG = "LibraryResolver";
 
     private static final String[] MAVEN_REPOS = {
-        "https://libraries.minecraft.net/",
-        "https://repo1.maven.org/maven2/",
-        "https://maven.minecraftforge.net/",
-        "https://maven.fabricmc.net/",
-        "https://maven.neoforged.net/releases/",
-        "https://maven.quiltmc.org/repository/release/",
-        "https://jitpack.io/",
+            "https://libraries.minecraft.net/",
+            "https://maven.minecraftforge.net/",
+            "https://repo1.maven.org/maven2/",
+            "https://maven.fabricmc.net/",
+            "https://maven.neoforged.net/releases/",
+            "https://maven.quiltmc.org/repository/release/",
+            "https://jitpack.io/"
     };
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
@@ -30,124 +31,139 @@ public final class LibraryResolver {
             .followRedirects(HttpClient.Redirect.ALWAYS)
             .build();
 
-    private LibraryResolver() {}
+    private LibraryResolver() {
+    }
 
     public sealed interface Resolution permits Resolution.Found, Resolution.NotFound {
 
         record Found(String url, String path, String repo) implements Resolution {
-            @Override public boolean found() { return true; }
+            @Override
+            public boolean found() {
+                return true;
+            }
         }
 
         record NotFound(String name) implements Resolution {
-            @Override public boolean found() { return false; }
+            @Override
+            public boolean found() {
+                return false;
+            }
         }
 
         boolean found();
     }
 
-    public static Resolution resolve(VersionInfo.Library lib) {
-        if (lib.downloads != null
-                && lib.downloads.artifact != null
-                && lib.downloads.artifact.url != null
-                && !lib.downloads.artifact.url.isBlank()) {
+    public static Resolution resolve(VersionInfo.Library library) {
+        if (library == null)
+            return new Resolution.NotFound("<null>");
 
-            String mavenPath = lib.downloads.artifact.path != null
-                    ? lib.downloads.artifact.path
-                    : mavenCoordinateToPath(lib.name);
-
-            return new Resolution.Found(lib.downloads.artifact.url, mavenPath, "explicit");
+        if (hasExplicitDownload(library)) {
+            String path = MavenPathResolver.resolveLibraryPath(library);
+            if (path == null)
+                return new Resolution.NotFound(libName(library));
+            return new Resolution.Found(library.downloads.artifact.url, path, "explicit");
         }
 
-        if (lib.name == null || lib.name.isBlank()) {
+        if (library.name == null || library.name.isBlank())
             return new Resolution.NotFound("<unnamed>");
-        }
 
-        String mavenPath = mavenCoordinateToPath(lib.name);
-        if (mavenPath == null) {
-            CoreLogger.get().warn(LOG, "Coordenada Maven inválida: '" + lib.name + "'");
-            return new Resolution.NotFound(lib.name);
+        try {
+            String mavenPath = MavenPathResolver.toPath(library.name);
+            return probeRepositories(library.name, mavenPath);
+        } catch (IllegalArgumentException ex) {
+            CoreLogger.get().warn(LOG, "Invalid Maven coordinate: '" + library.name + "'");
+            return new Resolution.NotFound(library.name);
         }
-
-        return probeRepositories(lib.name, mavenPath);
     }
 
-    public static List<ResolvedLibrary> resolveAll(VersionInfo info, java.nio.file.Path librariesPath) {
+    public static List<ResolvedLibrary> resolveAll(VersionInfo info, Path librariesPath) {
         List<ResolvedLibrary> result = new ArrayList<>();
-        if (info.libraries == null) return result;
+        if (info == null || info.libraries == null)
+            return result;
 
-        for (VersionInfo.Library lib : info.libraries) {
-            if (!lib.isAllowed()) continue;
-            if (TaskBuilder.isNativeLib(lib)) continue;
+        for (VersionInfo.Library library : info.libraries) {
+            if (!library.isAllowed())
+                continue;
+            if (NativeHandler.isNativeLibrary(library))
+                continue;
 
-            Resolution resolution = resolve(lib);
-            if (!resolution.found()) {
-                CoreLogger.get().warn(LOG, "No se pudo resolver: " + lib.name
-                        + " — omitida. ¿Dependencia privada/local?");
+            String resolvedPath = derivePath(library);
+            if (resolvedPath == null) {
+                CoreLogger.get().warn(LOG, "Cannot derive local path for library: " + libName(library));
                 continue;
             }
 
-            Resolution.Found found = (Resolution.Found) resolution;
-            java.nio.file.Path localPath = librariesPath.resolve(found.path());
+            Path localPath = librariesPath.resolve(resolvedPath);
 
-            String sha1 = (lib.downloads != null && lib.downloads.artifact != null)
-                    ? lib.downloads.artifact.sha1 : null;
-            long size = (lib.downloads != null && lib.downloads.artifact != null)
-                    ? lib.downloads.artifact.size : -1;
+            String url = null;
+            String sha1 = null;
+            long size = -1L;
 
-            result.add(new ResolvedLibrary(lib.name, found.url(), found.path(), localPath, sha1, size));
+            if (hasExplicitDownload(library)) {
+                url = library.downloads.artifact.url;
+                sha1 = library.downloads.artifact.sha1;
+                size = library.downloads.artifact.size;
+            }
+
+            result.add(new ResolvedLibrary(libName(library), url, resolvedPath, localPath, sha1, size));
         }
 
         return result;
     }
 
-    public static String mavenCoordinateToPath(String coord) {
-        if (coord == null) return null;
-        String[] parts = coord.split(":");
-        if (parts.length < 3) return null;
+    private static String derivePath(VersionInfo.Library library) {
+        if (library.downloads != null
+                && library.downloads.artifact != null
+                && library.downloads.artifact.path != null
+                && !library.downloads.artifact.path.isBlank()) {
+            return library.downloads.artifact.path;
+        }
+        if (library.name != null && !library.name.isBlank()) {
+            try {
+                return MavenPathResolver.toPath(library.name);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return null;
+    }
 
-        String groupPath   = parts[0].replace('.', '/');
-        String artifactId  = parts[1];
-        String version     = parts[2];
-        String classifier  = parts.length > 3 ? parts[3] : null;
+    private static boolean hasExplicitDownload(VersionInfo.Library library) {
+        return library.downloads != null
+                && library.downloads.artifact != null
+                && library.downloads.artifact.url != null
+                && !library.downloads.artifact.url.isBlank();
+    }
 
-        String jarName = artifactId + "-" + version
-                + (classifier != null ? "-" + classifier : "")
-                + ".jar";
-
-        return groupPath + "/" + artifactId + "/" + version + "/" + jarName;
+    private static String libName(VersionInfo.Library library) {
+        return library.name != null ? library.name : "<unnamed>";
     }
 
     private static Resolution probeRepositories(String name, String mavenPath) {
         for (String repoBase : MAVEN_REPOS) {
             String url = repoBase + mavenPath;
             try {
-                HttpRequest req = HttpRequest.newBuilder()
+                HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .method("HEAD", HttpRequest.BodyPublishers.noBody())
                         .timeout(Duration.ofSeconds(3))
                         .build();
-
-                HttpResponse<Void> res = HTTP.send(req, HttpResponse.BodyHandlers.discarding());
-
-                if (res.statusCode() >= 200 && res.statusCode() < 300) {
-                    CoreLogger.get().info(LOG, "Resuelto: " + name + " → " + repoBase);
+                HttpResponse<Void> response = HTTP.send(request, HttpResponse.BodyHandlers.discarding());
+                if (response.statusCode() >= 200 && response.statusCode() < 300)
                     return new Resolution.Found(url, mavenPath, repoBase);
-                }
             } catch (Exception ex) {
-                CoreLogger.get().debug(LOG, "HEAD fallido para " + url + ": " + ex.getMessage());
+                CoreLogger.get().debug(LOG, "HEAD failed for " + url + ": " + ex.getMessage());
             }
         }
-
-        CoreLogger.get().warn(LOG, "Sin resolver en ningún repo: " + name + " (" + mavenPath + ")");
         return new Resolution.NotFound(name);
     }
+
 
     public record ResolvedLibrary(
             String name,
             String url,
             String mavenPath,
-            java.nio.file.Path localPath,
+            Path localPath,
             String sha1,
-            long   size
-    ) {}
+            long size) {
+    }
 }

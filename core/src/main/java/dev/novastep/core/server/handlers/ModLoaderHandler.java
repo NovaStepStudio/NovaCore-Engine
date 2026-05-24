@@ -1,6 +1,5 @@
 package dev.novastep.core.server.handlers;
 
-import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import dev.novastep.core.log.CoreLogger;
@@ -10,9 +9,9 @@ import dev.novastep.core.modloader.model.ModLoaderModels.InstalledLoader;
 import dev.novastep.core.modloader.model.ModLoaderModels.LoaderVersion;
 import dev.novastep.core.server.HttpUtils;
 import dev.novastep.core.server.request.ModLoaderRequest;
+import dev.novastep.core.state.EngineStateManager;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
@@ -21,68 +20,70 @@ import java.util.Optional;
 
 public final class ModLoaderHandler implements HttpHandler {
 
-    private static final String LOG  = "ModLoaderHandler";
-    private static final Gson   GSON = new Gson();
+    private static final String LOG = "ModLoaderHandler";
 
     private final ModLoaderOrchestrator orchestrator;
+    private final EngineStateManager engineStateManager;
 
-    public ModLoaderHandler(ModLoaderOrchestrator orchestrator) {
+    public ModLoaderHandler(ModLoaderOrchestrator orchestrator, EngineStateManager engineStateManager) {
         this.orchestrator = orchestrator;
+        this.engineStateManager = engineStateManager;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        String path   = exchange.getRequestURI().getPath();
+        String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
 
         try {
             if ("GET".equals(method) && path.equals("/modloaders")) {
-                handleListLoaders(exchange);
-            } else if ("GET".equals(method) && path.startsWith("/modloaders/versions/")) {
-                handleGetVersions(exchange, path);
-            } else if ("POST".equals(method) && path.equals("/modloaders/install")) {
-                handleInstall(exchange);
-            } else if ("GET".equals(method) && path.startsWith("/modloaders/state/")) {
-                handleGetState(exchange, path);
-            } else if ("DELETE".equals(method) && path.startsWith("/modloaders/state/")) {
-                handleDeleteState(exchange, path);
-            } else {
-                HttpUtils.send(exchange, 404, Map.of("error", "Not found: " + path));
+                HttpUtils.send(exchange, 200, Map.of("loaders", ModLoaderRegistry.get().names()));
+                return;
             }
+            if ("GET".equals(method) && path.startsWith("/modloaders/versions/")) {
+                handleGetVersions(exchange, path);
+                return;
+            }
+            if ("POST".equals(method) && path.equals("/modloaders/install")) {
+                handleInstall(exchange);
+                return;
+            }
+            if ("GET".equals(method) && path.startsWith("/modloaders/state/")) {
+                handleGetState(exchange, path);
+                return;
+            }
+            if ("DELETE".equals(method) && path.startsWith("/modloaders/state/")) {
+                handleDeleteState(exchange, path);
+                return;
+            }
+            HttpUtils.send(exchange, 404, Map.of("error", "Not found: " + path));
         } catch (Exception ex) {
-            CoreLogger.get().error(LOG, "Unhandled error: " + ex.getMessage(), ex);
+            CoreLogger.get().error(LOG, "Unhandled error", ex);
             HttpUtils.send(exchange, 500, Map.of("error", ex.getMessage()));
         }
     }
 
-    private void handleListLoaders(HttpExchange exchange) throws IOException {
-        HttpUtils.send(exchange, 200, Map.of("loaders", ModLoaderRegistry.get().names()));
-    }
-
     private void handleGetVersions(HttpExchange exchange, String path) throws IOException {
-        String[] parts      = path.split("/");
+        String[] parts = path.split("/");
         if (parts.length < 5) {
             HttpUtils.send(exchange, 400, Map.of("error", "Expected: /modloaders/versions/{loader}/{mcVersion}"));
             return;
         }
         String loaderName = parts[3];
-        String mcVersion  = parts[4];
+        String mcVersion = parts[4];
 
         try {
             List<LoaderVersion> versions = orchestrator.getVersions(loaderName, mcVersion);
-            
             if (versions == null || versions.isEmpty()) {
-                CoreLogger.get().warn(LOG, "Versión no soportada para modloader (loader=" + loaderName + ", minecraft=" + mcVersion + ")");
                 HttpUtils.send(exchange, 404, Map.of(
                         "code", "MODLOADER_VERSION_NOT_FOUND",
-                        "error", "No existe la versión " + mcVersion + " para el modloader " + loaderName,
+                        "error", "No version " + mcVersion + " for modloader " + loaderName,
                         "loader", loaderName,
                         "minecraftVersion", mcVersion,
                         "supported", false
                 ));
                 return;
             }
-            
             HttpUtils.send(exchange, 200, Map.of("versions", versions));
         } catch (IllegalArgumentException ex) {
             HttpUtils.send(exchange, 400, Map.of("error", ex.getMessage()));
@@ -92,37 +93,55 @@ public final class ModLoaderHandler implements HttpHandler {
     }
 
     private void handleInstall(HttpExchange exchange) throws IOException {
-        ModLoaderRequest req = parseBody(exchange, ModLoaderRequest.class);
-        if (req == null) return;
+        if (engineStateManager.isSemiOff()) {
+            HttpUtils.sendJson(exchange, 409, Map.of(
+                    "error", "Engine is in semi-off mode",
+                    "engine", engineStateManager.snapshot()
+            ));
+            return;
+        }
 
-        String validationError = req.validate();
+        String body = HttpUtils.readBody(exchange);
+        ModLoaderRequest request;
+        try {
+            request = HttpUtils.readJson(body, ModLoaderRequest.class);
+        } catch (Exception ex) {
+            HttpUtils.send(exchange, 400, Map.of("error", "Invalid JSON: " + ex.getMessage()));
+            return;
+        }
+        if (request == null) {
+            HttpUtils.send(exchange, 400, Map.of("error", "Request body is empty"));
+            return;
+        }
+
+        String validationError = request.validate();
         if (validationError != null) {
             HttpUtils.send(exchange, 400, Map.of("error", validationError));
             return;
         }
 
         String sessionId = Long.toHexString(System.currentTimeMillis());
-
         Thread.ofVirtual().name("modloader-install-" + sessionId).start(() -> {
             try {
                 orchestrator.install(
                         sessionId,
-                        req.loader,
-                        req.loaderVersion,
-                        req.minecraftVersion,
-                        Path.of(req.resolvedInstancePath()),
-                        req.resolvedLibrariesPath(),
-                        req.resolvedMinecraftJar());
+                        request.loader,
+                        request.loaderVersion,
+                        request.minecraftVersion,
+                        Path.of(request.resolvedInstancePath()),
+                        request.resolvedLibrariesPath(),
+                        request.resolvedMinecraftJar());
             } catch (Exception ex) {
-                CoreLogger.get().error(LOG, "[" + sessionId + "] Install failed: " + ex.getMessage(), ex);
+                CoreLogger.get().error(LOG, "[" + sessionId + "] Install failed", ex);
             }
         });
 
         HttpUtils.send(exchange, 202, Map.of(
-                "sessionId",  sessionId,
-                "loader",     req.loader,
-                "mcVersion",  req.minecraftVersion,
-                "status",     "started"));
+                "sessionId", sessionId,
+                "loader", request.loader,
+                "mcVersion", request.minecraftVersion,
+                "status", "started"
+        ));
     }
 
     private void handleGetState(HttpExchange exchange, String path) throws IOException {
@@ -147,19 +166,5 @@ public final class ModLoaderHandler implements HttpHandler {
 
     private String extractInstancePath(String path, String prefix) {
         return java.net.URLDecoder.decode(path.substring(prefix.length()), StandardCharsets.UTF_8);
-    }
-
-    private <T> T parseBody(HttpExchange exchange, Class<T> type) throws IOException {
-        try (InputStream in = exchange.getRequestBody()) {
-            String body = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            if (body.isBlank()) {
-                HttpUtils.send(exchange, 400, Map.of("error", "Request body is empty"));
-                return null;
-            }
-            return GSON.fromJson(body, type);
-        } catch (Exception ex) {
-            HttpUtils.send(exchange, 400, Map.of("error", "Invalid JSON: " + ex.getMessage()));
-            return null;
-        }
     }
 }

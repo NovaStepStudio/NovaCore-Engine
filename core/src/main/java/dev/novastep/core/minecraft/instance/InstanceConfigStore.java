@@ -1,7 +1,6 @@
 package dev.novastep.core.minecraft.instance;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import dev.novastep.core.json.Json;
 import dev.novastep.core.log.CoreLogger;
 
 import java.nio.charset.StandardCharsets;
@@ -19,8 +18,6 @@ public final class InstanceConfigStore {
 
     private static final String LOG = "InstanceConfigStore";
     public static final String FILENAME = "instance.config.json";
-
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public static final class InstanceConfig {
         public String id;
@@ -80,71 +77,64 @@ public final class InstanceConfigStore {
         return readFromFile(file(instancePath));
     }
 
-    public static Optional<InstanceConfig> readFromFile(Path f) {
-        if (!Files.exists(f))
+    public static Optional<InstanceConfig> readFromFile(Path file) {
+        if (!Files.exists(file)) {
             return Optional.empty();
+        }
         try {
-            String json = Files.readString(f, StandardCharsets.UTF_8);
-            InstanceConfig cfg = GSON.fromJson(json, InstanceConfig.class);
-
-            // Basic self-repair for null sub-objects if somehow they are missing
-            if (cfg != null) {
-                if (cfg.instanceMetadata == null)
-                    cfg.instanceMetadata = new InstanceMetadata();
-                if (cfg.instanceMetadata.frontend == null)
-                    cfg.instanceMetadata.frontend = new FrontendMetadata();
-                if (cfg.configInstance == null)
-                    cfg.configInstance = new ConfigInstance();
+            InstanceConfig config = Json.read(Files.readString(file, StandardCharsets.UTF_8), InstanceConfig.class);
+            if (config != null) {
+                if (config.instanceMetadata == null) {
+                    config.instanceMetadata = new InstanceMetadata();
+                }
+                if (config.instanceMetadata.frontend == null) {
+                    config.instanceMetadata.frontend = new FrontendMetadata();
+                }
+                if (config.configInstance == null) {
+                    config.configInstance = new ConfigInstance();
+                }
             }
-            return Optional.ofNullable(cfg);
+            return Optional.ofNullable(config);
         } catch (Exception ex) {
-            CoreLogger.get().error(LOG, "Failed to read or parse instance configuration file at " + f, ex);
+            CoreLogger.get().error(LOG, "Failed to read or parse instance configuration file at " + file, ex);
             return Optional.empty();
         }
     }
 
     public static InstanceConfig readOrCreate(Path instancePath,
-            InstanceTechnicalMetadataStore.TechnicalMetadata tech,
-            String mcVersion) {
+                                              InstanceTechnicalMetadataStore.TechnicalMetadata tech,
+                                              String mcVersion) {
         Optional<InstanceConfig> existing = read(instancePath);
-        if (existing.isPresent())
+        if (existing.isPresent()) {
             return existing.get();
+        }
 
-        InstanceConfig c = new InstanceConfig();
-        c.id = tech != null ? tech.instanceId : null;
+        InstanceConfig config = new InstanceConfig();
+        config.id = tech != null ? tech.instanceId : null;
+        config.instanceMetadata.createdAt = Instant.now().toString();
+        config.instanceMetadata.updatedAt = config.instanceMetadata.createdAt;
+        config.instanceMetadata.totalPlayTimeMs = 0L;
+        config.configInstance.minMemoryMb = DefaultInstanceConfig.MIN_MEMORY_MB;
+        config.configInstance.maxMemoryMb = DefaultInstanceConfig.MAX_MEMORY_MB;
+        config.configInstance.hardwareAccel = DefaultInstanceConfig.HARDWARE_ACCEL;
+        config.configInstance.gcPreset = DefaultInstanceConfig.GC_PRESET;
+        config.configInstance.gpuPreference = DefaultInstanceConfig.GPU_PREFERENCE;
+        config.configInstance.javaPath = DefaultInstanceConfig.JAVA_PATH;
+        config.configInstance.jvm.minMemoryMb = DefaultInstanceConfig.MIN_MEMORY_MB;
+        config.configInstance.jvm.maxMemoryMb = DefaultInstanceConfig.MAX_MEMORY_MB;
 
-        c.instanceMetadata.createdAt = Instant.now().toString();
-        c.instanceMetadata.updatedAt = c.instanceMetadata.createdAt;
-        c.instanceMetadata.totalPlayTimeMs = 0L;
-        c.instanceMetadata.frontend.name = "";
-        c.instanceMetadata.frontend.description = "";
-        c.instanceMetadata.frontend.icon = "";
-        c.instanceMetadata.frontend.hero = "";
-
-        c.configInstance.minMemoryMb = DefaultInstanceConfig.MIN_MEMORY_MB;
-        c.configInstance.maxMemoryMb = DefaultInstanceConfig.MAX_MEMORY_MB;
-        c.configInstance.hardwareAccel = DefaultInstanceConfig.HARDWARE_ACCEL;
-        c.configInstance.gcPreset = DefaultInstanceConfig.GC_PRESET;
-        c.configInstance.gpuPreference = DefaultInstanceConfig.GPU_PREFERENCE;
-        c.configInstance.javaPath = DefaultInstanceConfig.JAVA_PATH;
-
-        c.configInstance.jvm.minMemoryMb = DefaultInstanceConfig.MIN_MEMORY_MB;
-        c.configInstance.jvm.maxMemoryMb = DefaultInstanceConfig.MAX_MEMORY_MB;
-
-        save(instancePath, c);
-        return c;
+        save(instancePath, config);
+        return config;
     }
 
-    public static void save(Path instancePath, InstanceConfig c) {
-        Path f = file(instancePath);
+    public static void save(Path instancePath, InstanceConfig config) {
+        Path file = file(instancePath);
         try {
             Files.createDirectories(instancePath);
-            Files.writeString(f, GSON.toJson(c), StandardCharsets.UTF_8,
+            Files.writeString(file, Json.writePretty(config), StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (Exception ex) {
-            CoreLogger.get().error(LOG,
-                    "Failed to save instance configuration to " + f + " for instance at " + instancePath, ex);
+            CoreLogger.get().error(LOG, "Failed to save instance configuration to " + file, ex);
         }
     }
-
 }

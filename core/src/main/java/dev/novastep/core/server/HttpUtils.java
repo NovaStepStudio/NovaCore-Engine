@@ -1,7 +1,8 @@
 package dev.novastep.core.server;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.sun.net.httpserver.HttpExchange;
+import dev.novastep.core.json.Json;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,9 +12,8 @@ import java.util.Map;
 
 public final class HttpUtils {
 
-    public static final Gson GSON = new Gson();
-
-    private HttpUtils() { }
+    private HttpUtils() {
+    }
 
     public static boolean handleCors(HttpExchange exchange) throws IOException {
         exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
@@ -30,28 +30,33 @@ public final class HttpUtils {
     }
 
     public static void sendJson(HttpExchange exchange, int status, Object body) throws IOException {
-        byte[] bytes = GSON.toJson(body).getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = Json.write(body).getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
         exchange.sendResponseHeaders(status, bytes.length);
-        try (OutputStream os = exchange.getResponseBody()) {
-            os.write(bytes);
+        try (OutputStream outputStream = exchange.getResponseBody()) {
+            outputStream.write(bytes);
         }
     }
 
     public static void send(HttpExchange exchange, int statusCode, Object responseBody) {
         try {
-            String jsonResponse = GSON.toJson(responseBody);
-            byte[] bytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
-            
+            byte[] bytes = Json.write(responseBody).getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
             exchange.sendResponseHeaders(statusCode, bytes.length);
-            
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(bytes);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(bytes);
             }
-        } catch (Exception e) {
-            dev.novastep.core.log.CoreLogger.get().error("HttpUtils", "Failed to send HTTP response with status " + statusCode, e);
+        } catch (Exception ex) {
+            dev.novastep.core.log.CoreLogger.get().error("HttpUtils", "Failed to send HTTP response with status " + statusCode, ex);
         }
+    }
+
+    public static <T> T readJson(String body, Class<T> type) throws IOException {
+        return Json.read(body, type);
+    }
+
+    public static <T> T readJson(String body, TypeReference<T> type) throws IOException {
+        return Json.read(body, type);
     }
 
     public static void ok(HttpExchange exchange, Object body) throws IOException {
@@ -83,21 +88,24 @@ public final class HttpUtils {
     }
 
     public static String readBody(HttpExchange exchange) throws IOException {
-        try (InputStream is = exchange.getRequestBody()) {
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        try (InputStream inputStream = exchange.getRequestBody()) {
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 
     public static String queryParam(HttpExchange exchange, String key) {
         String query = exchange.getRequestURI().getQuery();
-        if (query == null || query.isBlank())
+        if (query == null || query.isBlank()) {
             return null;
+        }
         for (String pair : query.split("&")) {
             int eq = pair.indexOf('=');
-            if (eq < 0)
+            if (eq < 0) {
                 continue;
-            if (pair.substring(0, eq).equals(key))
+            }
+            if (pair.substring(0, eq).equals(key)) {
                 return pair.substring(eq + 1);
+            }
         }
         return null;
     }

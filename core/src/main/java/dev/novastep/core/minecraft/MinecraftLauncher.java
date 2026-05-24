@@ -1,6 +1,6 @@
 package dev.novastep.core.minecraft;
 
-import com.google.gson.Gson;
+import dev.novastep.core.json.Json;
 import dev.novastep.core.log.CoreLogger;
 import dev.novastep.core.minecraft.manifest.VersionMerger;
 import dev.novastep.core.minecraft.version.VersionInfo;
@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MinecraftLauncher {
 
     private static final String LOG = "MinecraftLauncher";
-    private static final Gson GSON = new Gson();
+    // JSON deserialization handled via Jackson (Json.java) — Gson removed
 
     private final EventBroadcaster broadcaster;
     private final ModLoaderOrchestrator modLoaderOrchestrator;
@@ -597,7 +597,7 @@ public class MinecraftLauncher {
         Path versionFile = instancePath.resolve("versions").resolve(versionId).resolve(versionId + ".json");
         if (!Files.exists(versionFile))
             return versionId;
-        VersionInfo raw = GSON.fromJson(Files.readString(versionFile, StandardCharsets.UTF_8), VersionInfo.class);
+        VersionInfo raw = Json.read(Files.readString(versionFile, StandardCharsets.UTF_8), VersionInfo.class);
         if (raw.inheritsFrom != null && !raw.inheritsFrom.isBlank())
             return resolveVanillaVersionId(raw.inheritsFrom, instancePath);
         return versionId;
@@ -607,7 +607,7 @@ public class MinecraftLauncher {
         Path versionFile = instancePath.resolve("versions").resolve(versionId).resolve(versionId + ".json");
         if (!Files.exists(versionFile))
             throw new IOException("Version JSON not found: " + versionFile + " — run install first.");
-        VersionInfo info = GSON.fromJson(Files.readString(versionFile, StandardCharsets.UTF_8), VersionInfo.class);
+        VersionInfo info = Json.read(Files.readString(versionFile, StandardCharsets.UTF_8), VersionInfo.class);
         if (info.inheritsFrom != null && !info.inheritsFrom.isBlank()) {
             VersionInfo parent = loadLocalVersionInfo(info.inheritsFrom, instancePath);
             info = VersionMerger.merge(parent, info);

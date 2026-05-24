@@ -1,6 +1,6 @@
 package dev.novastep.core.modloader.provider;
 
-import com.google.gson.Gson;
+import dev.novastep.core.json.Json;
 import dev.novastep.core.log.CoreLogger;
 import dev.novastep.core.minecraft.version.VersionInfo;
 import dev.novastep.core.modloader.ModLoaderProvider;
@@ -43,7 +43,6 @@ public final class OptiFineProvider implements ModLoaderProvider {
     private static final Pattern HREF_PATTERN = Pattern
             .compile("href=['\"]([^'\"]*OptiFine_[^'\"]+\\.jar[^'\"]*)['\"\\s]");
 
-    private static final Gson GSON = new Gson();
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(20))
@@ -365,7 +364,7 @@ public final class OptiFineProvider implements ModLoaderProvider {
         root.put("settings", Map.of("enableSnapshots", false));
         root.put("version", 3);
 
-        Files.writeString(dir.resolve("launcher_profiles.json"), GSON.toJson(root), StandardCharsets.UTF_8);
+        Files.writeString(dir.resolve("launcher_profiles.json"), Json.write(root), StandardCharsets.UTF_8);
     }
 
     private static void deleteDirectory(Path dir) {

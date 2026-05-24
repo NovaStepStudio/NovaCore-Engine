@@ -5,9 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Aggregated models for ModLoader operations.
- */
 public final class ModLoaderModels {
     private ModLoaderModels() {}
 
